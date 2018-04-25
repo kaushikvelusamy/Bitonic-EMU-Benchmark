@@ -16,7 +16,11 @@
 #include "stdio.h"
 #include "stdlib.h"
 
-#ifdef TIMING
+#ifdef HARDWARE
+    #include "timing.h"
+#endif
+
+#ifdef SIMULATOR
     #include "timing.h"
 #endif
 
@@ -152,10 +156,14 @@ int main(int argc, char **argv)
         fflush(stdout);
     #endif
 
-    #ifdef TIMING
+    #ifdef HARDWARE
         starttiming();
         long nidstart = NODE_ID();
         unsigned long tic = CLOCK();
+    #endif
+
+    #ifdef SIMULATOR
+        starttiming();
     #endif
 
     for (long s=2; s <= n; s*=2) {
@@ -167,7 +175,12 @@ int main(int argc, char **argv)
         }
     }   
  
-    #ifdef TIMING
+    #ifdef SIMULATOR
+        // Immediately exit; any other code slows down simulator
+        return 0;
+    #endif
+
+    #ifdef HARDWARE
         unsigned long toc = CLOCK();
         long nidend = NODE_ID();
         if(nidstart != nidend) {

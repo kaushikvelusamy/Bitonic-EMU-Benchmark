@@ -3,7 +3,7 @@ import random
 import time
 
 start_time = time.time()
-random.seed()
+random.seed(123456)
 
 # 2 power 30 is "1073741824". For bitonic sort the Total number of elements (size) of the input should be a power of 2
 

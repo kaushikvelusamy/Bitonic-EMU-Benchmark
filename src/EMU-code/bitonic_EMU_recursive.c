@@ -18,7 +18,11 @@
 #include "stdio.h"
 #include "stdlib.h"
 
-#ifdef TIMING
+#ifdef HARDWARE
+    #include "timing.h"
+#endif
+
+#ifdef SIMULATOR
     #include "timing.h"
 #endif
 
@@ -130,17 +134,25 @@ int main(int argc, char **argv)
         fflush(stdout);
     #endif
 
-    MIGRATE(InputArray);
-    #ifdef TIMING
-        starttiming();
+    #ifdef HARDWARE
+        MIGRATE(InputArray);
         long nidstart = NODE_ID();
         unsigned long tic = CLOCK();
     #endif
 
+    #ifdef SIMULATOR
+        starttiming();
+    #endif
+
     bitonicSort(InputArray, 0, n, direction);
-    MIGRATE(InputArray);
-    
-    #ifdef TIMING
+
+    #ifdef SIMULATOR
+        // Immediately exit; any other code slows down simulator
+        return 0;
+    #endif
+
+    #ifdef HARDWARE
+        MIGRATE(InputArray);
         unsigned long toc = CLOCK();
         long nidend = NODE_ID();
         if(nidstart != nidend) {
