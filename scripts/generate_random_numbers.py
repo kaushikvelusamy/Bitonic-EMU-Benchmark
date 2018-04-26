@@ -2,6 +2,7 @@
 import random
 import time
 import struct
+import sys
 
 start_time = time.time()
 random.seed(123456)
@@ -21,15 +22,25 @@ def genl (max):
         yield random.randint(0, element_range)
         cur = cur + 1
     
-for i in range(30,32):
+if(len(sys.argv) != 4):
+    print("usage: %s <log2(start)> <log2(end)> <out-dir>" %sys.argv[0])
+    sys.exit(-1)
+
+start = int(sys.argv[1])
+end = int(sys.argv[2])
+outdir = sys.argv[3]
+
+for i in range(start,end+1):
     gen = genl(2**i)
     gen.send(None)
     f = 'dataset'
     f1 = str(2**i)
-    filename = f + f1 + ".dat"
+    filename = outdir + "/" + f + f1 + ".dat"
 
+    print("+ Generating %d numbers..." %2**i)
     with open(filename, "wb") as f:
+        f.write(struct.pack('l', 2**i))
         for i in gen:
-            f.write(struct.pack('i', i))
+            f.write(struct.pack('l', i))
     
-    print("--- %s seconds ---" % (time.time() - start_time))
+    print("\t--- %s seconds ---\n" % (time.time() - start_time))

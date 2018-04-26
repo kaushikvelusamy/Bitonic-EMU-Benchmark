@@ -2,14 +2,20 @@
 .PHONY: clean
 
 CC=emu-cc
-DEBUG=0
-TIMING=1
 
+DEBUG=0
+SIMULATOR=0
+HARDWARE=1
+
+ifeq ($(SIMULATOR), 1)
+  CFLAGS = -DSIMULATOR
+  HARDWARE=0
+endif
+ifeq ($(HARDWARE), 1)
+  CFLAGS = -DHARDWARE
+endif
 ifeq ($(DEBUG), 1)
   CFLAGS += -DDEBUG
-endif
-ifeq ($(TIMING), 1)
-  CFLAGS += -DTIMING
 endif
 
 all: bitonic_EMU_iterative

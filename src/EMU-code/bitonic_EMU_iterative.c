@@ -6,9 +6,11 @@
     Description:    This is an iterative implementation of the
                     parallel bitonic sort for EMU.
 
-                    The first argument to the program is the
-                    input data set and the second argument is
-                    the number of elements in the data set.
+                    The only argument to the program is the
+                    input data set. The first number in this
+                    file indicates how many elements there are.
+                    This is a binary file, where each element is
+                    a long.
 */
 
 #include "memoryweb.h"
@@ -117,8 +119,8 @@ void merge_down(long *arr, long n)
 
 int main(int argc, char **argv)
 {
-    if(argc != 3) {
-        printf("usage: %s <input file> <number of elements>\n", argv[0]);
+    if(argc != 2) {
+        printf("usage: %s <input file>\n", argv[0]);
         exit(-1);
     }
     
@@ -128,7 +130,10 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    long n = atol(argv[2]);
+    // First number in file is number of elements
+    long n;
+    fread(&n, sizeof(long), 1, fp); 
+
     long m = n;
     if(n <= 1) {
         fprintf(stderr, "ERROR: Number of elements must be greater than 1 and power of 2\n");
@@ -158,7 +163,6 @@ int main(int argc, char **argv)
     #endif
 
     #ifdef HARDWARE
-        starttiming();
         long nidstart = NODE_ID();
         unsigned long tic = CLOCK();
     #endif
