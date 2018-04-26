@@ -24,7 +24,7 @@
 
 #ifdef TIMING
     #include <papi.h>
-    #define NUM_EVENTS 2
+    #define NUM_EVENTS 4
     void handle_error(int retval)
     {
         printf("PAPI error %d: %s\n", retval, PAPI_strerror(retval));
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
     #endif
 
     #ifdef TIMING
-        int Events[NUM_EVENTS] = {PAPI_TOT_CYC, PAPI_TOT_INS};
+        int Events[NUM_EVENTS] = {PAPI_TOT_CYC, PAPI_L1_LDM, PAPI_L2_LDM, PAPI_L3_LDM};
         long_long values[NUM_EVENTS];
         int retval = PAPI_start_counters(Events, NUM_EVENTS);
         if(retval != PAPI_OK) {
@@ -188,7 +188,12 @@ int main(int argc, char **argv)
         if(retval != PAPI_OK) {
             handle_error(retval);
         }
-        printf("######## TOTAL CYCLES: %lld, TOTAL INSTRUCTIONS: %lld\n", values[0], values[1]);
+        printf("########################################\n");
+        printf("TOTAL CYCLES:   %lld\n", values[0]);
+        printf("L1 LOAD MISSES: %lld\n", values[1]);
+        printf("L2 LOAD MISSES: %lld\n", values[2]);
+        printf("L3 LOAD MISSES: %lld\n", values[3]);
+        printf("########################################\n");
     #endif
 
     #ifdef DEBUG
