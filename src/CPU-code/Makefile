@@ -14,7 +14,7 @@ ifeq ($(TIMING), 1)
   CFLAGS += -DTIMING
 endif
 
-all: bitonic_CPU_iterative bitonic_CPU_recursive
+all: bitonic_CPU_iterative
 
 .c.o:
 	${CC} ${CFLAGS} -c -o $@ $<
@@ -22,8 +22,5 @@ all: bitonic_CPU_iterative bitonic_CPU_recursive
 bitonic_CPU_iterative: bitonic_CPU_iterative.o
 	${CC} ${CFLAGS} bitonic_CPU_iterative.o -o bitonic_CPU_iterative ${LDFLAGS}
 
-bitonic_CPU_recursive: bitonic_CPU_recursive.o
-	${CC} ${CFLAGS} bitonic_CPU_recursive.o -o bitonic_CPU_recursive ${LDFLAGS}
-	
 clean:
-	rm -rf *.o bitonic_CPU_iterative bitonic_CPU_recursive
+	rm -rf *.o bitonic_CPU_iterative

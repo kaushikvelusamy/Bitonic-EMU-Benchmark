@@ -128,7 +128,7 @@ int main(int argc, char **argv)
         exit(-1);
     }
     
-    FILE *fp = fopen(argv[1],"r");
+    FILE *fp = fopen(argv[1],"rb");
     if(fp == NULL) {
         fprintf(stderr, "ERROR: Input file %s could not be opened for reading\n", argv[1]);
         exit(-1);
@@ -152,7 +152,8 @@ int main(int argc, char **argv)
     
     long *InputArray = (long *)malloc(sizeof(long) * n);
     for(long i = 0; i < n; i++) {
-        fscanf(fp, "%ld", (InputArray+i));
+        //fscanf(fp, "%ld", (InputArray+i));
+        fread((InputArray+i), sizeof(int), 1, fp);
     }
     fclose(fp);
 
@@ -174,9 +175,9 @@ int main(int argc, char **argv)
     for (long s=2; s <= n; s*=2) {
         for (long i=0; i < n;i=i+s*2) {
             merge_up((InputArray+i),s);
-            if (s < n) {
+            //if (s < n) {
                 merge_down((InputArray+i+s),s);
-            }
+            //}
         }
     }   
  

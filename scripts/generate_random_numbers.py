@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import random
 import time
+import struct
 
 start_time = time.time()
 random.seed(123456)
@@ -20,15 +21,15 @@ def genl (max):
         yield random.randint(0, element_range)
         cur = cur + 1
     
-for i in range(25,29):
+for i in range(30,32):
     gen = genl(2**i)
     gen.send(None)
     f = 'dataset'
     f1 = str(2**i)
-    filename = f + f1 
+    filename = f + f1 + ".dat"
 
-    with open(filename, "w") as f:
+    with open(filename, "wb") as f:
         for i in gen:
-            f.write(str(i) + '\n')
+            f.write(struct.pack('i', i))
     
     print("--- %s seconds ---" % (time.time() - start_time))
