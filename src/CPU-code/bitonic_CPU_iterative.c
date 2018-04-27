@@ -156,9 +156,7 @@ int main(int argc, char **argv)
     }
     
     long *InputArray = (long *)malloc(sizeof(long) * n);
-    for(long i = 0; i < n; i++) {
-        fread((InputArray+i), sizeof(long), 1, fp);
-    }
+    fread(InputArray, sizeof(long), n, fp);
     fclose(fp);
 
     #ifdef DEBUG

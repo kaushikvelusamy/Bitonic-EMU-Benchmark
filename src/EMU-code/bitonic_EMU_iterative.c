@@ -17,6 +17,7 @@
 #include "cilk.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "distributed.h"
 
 #ifdef HARDWARE
     #include "timing.h"
@@ -149,12 +150,15 @@ int main(int argc, char **argv)
         m /= 2;
     }
     
-    long *InputArray = (long *)mw_malloc1dlong(n);
-    for(long i = 0; i < n; i++) {
-        //fscanf(fp, "%ld", (InputArray+i));
-        fread((InputArray+i), sizeof(long), 1, fp);
-    }
+    //long *InputArray =(long *) mw_malloc1dlong(n);
+    long *temp =(long *)malloc(sizeof(long) * n);
+    fread(temp, sizeof(long), n, fp);
     fclose(fp);
+    long *InputArray =(long *) mw_malloc1dlong(n);
+    for(long i = 0; i < n; i++) {
+        InputArray[i] = temp[i];
+    }
+    free(temp);
 
     #ifdef DEBUG
         printf("INITIAL ARRAY:\n");
