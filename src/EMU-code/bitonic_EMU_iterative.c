@@ -179,11 +179,6 @@ int main(int argc, char **argv)
             }
         }
     }   
- 
-    #ifdef SIMULATOR
-        // Immediately exit; any other code slows down simulator
-        return 0;
-    #endif
 
     #ifdef HARDWARE
         unsigned long toc = CLOCK();
@@ -201,9 +196,11 @@ int main(int argc, char **argv)
         printf("Test Result: %s; \t count: %ld; \n",  (result>0 ? "Failed" : "Passed"),n);
         fflush(stdout);
     #endif
+ 
+    #ifdef SIMULATOR
+        // Immediately exit; any other code slows down simulator
+        return 0;
+    #endif
 
     return 0;
 }
-
-
-
