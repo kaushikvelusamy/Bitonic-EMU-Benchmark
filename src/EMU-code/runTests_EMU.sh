@@ -85,8 +85,12 @@ printf "${CYAN}+ Creating output directory: $OUTDIR\n${NOCOLOR}"
 
 mkdir -p ${OUTDIR}
 mkdir -p ${OUTDIR}/small
-mkdir -p ${OUTDIR}/medium
-mkdir -p ${OUTDIR}/large
+# We only run on medium and large if we are on the hardware
+if [[ "${MODE}" == "HW" ]];
+then
+    mkdir -p ${OUTDIR}/medium
+    mkdir -p ${OUTDIR}/large
+fi
 
 #######################################################################################
 ##
@@ -140,6 +144,20 @@ TIME_TOTAL=$((TIME_END-TIME_START))
 currDate=`date`
 printf "${RED}END TIME:   ${currDate}\n${NOCOLOR}"
 printf "${RED}TOTAL TIME: ${TIME_TOTAL} seconds\n\n${NOCOLOR}"
+
+# If we are running on the simulator, then don't do medium or large data sets
+if [[ "${MODE}" == "SIM" ]];
+then
+    totalEnd=`date +%s`
+    totalTime=$((totalEnd-totalStart))
+    currDate=`date`
+    echo ""
+    printf "${YELLOW}######################################################################################\n${NOCOLOR}"
+    printf "${RED}END TIME:   ${currDate}\n${NOCOLOR}"
+    printf "${RED}TOTAL TIME: ${totalTime} seconds\n${NOCOLOR}"
+    echo ""
+    exit -1
+fi
 
 #######################################################################################
 ##
