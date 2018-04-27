@@ -137,7 +137,7 @@ do
     do
         if [[ "${MODE}" == "SIM" ]];
         then
-            EXE="emusim.x --short_trace --gcs_per_nodelet 1 -o ${numElements}_trial${TRIAL} bitonic_EMU_iterative.mwx"
+            EXE="emusim.x --gcs_per_nodelet 1 -o ${numElements}_trial${TRIAL} bitonic_EMU_iterative.mwx"
         fi
         printf "[TRIAL=${TRIAL}] Running on dataset: ${dataFile}\n"
         ${EXE} ${dataFile} &> ${OUTDIR}/small/${numElements}/${numElements}_trial${TRIAL}.out
