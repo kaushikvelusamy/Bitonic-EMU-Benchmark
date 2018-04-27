@@ -104,7 +104,6 @@ do
     done
     declare -a dataFileName
     numElements=${dataFileName[0]}
-    echo $numElements
     mkdir -p ${OUTDIR}/small/${numElements}
 
     # Run 5 trials for each data set
