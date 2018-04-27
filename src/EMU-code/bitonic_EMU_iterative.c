@@ -149,7 +149,7 @@ int main(int argc, char **argv)
         m /= 2;
     }
     
-    long *InputArray = (long *)mw_malloc1dlong(sizeof(long) * n);
+    long *InputArray = (long *)mw_malloc1dlong(n);
     for(long i = 0; i < n; i++) {
         //fscanf(fp, "%ld", (InputArray+i));
         fread((InputArray+i), sizeof(long), 1, fp);
