@@ -102,11 +102,13 @@ do
     declare -a dataFileName
     numElements=${dataFileName[0]}
 
+    mkdir -p ${OUTDIR}/small/${numElements}
+
     # Run 5 trials for each data set
     for TRIAL in 1 2 3 4 5
     do
         printf "[TRIAL=${TRIAL}] Running on dataset: ${dataFile}\n"
-        ./bitonic_CPU_iterative ${dataFile} > ${OUTDIR}/small/${numElements}.out
+        ./bitonic_CPU_iterative ${dataFile} &> ${OUTDIR}/small/${numElements}/${numElements}_trial${TRIAL}.out
     done
     printf "\n"
 done
@@ -151,11 +153,13 @@ do
     declare -a dataFileName
     numElements=${dataFileName[0]}
 
+    mkdir -p ${OUTDIR}/medium/${numElements}
+
     # Run 5 trials for each data set
     for TRIAL in 1 2 3 4 5
     do
         printf "[TRIAL=${TRIAL}] Running on dataset: ${dataFile}\n"
-        ./bitonic_CPU_iterative ${dataFile} > ${OUTDIR}/medium/${numElements}.out
+        ./bitonic_CPU_iterative ${dataFile} &> ${OUTDIR}/medium/${numElements}/${numElements}_trial${TRIAL}.out
     done
     printf "\n"
 done
@@ -200,11 +204,13 @@ do
     declare -a dataFileName
     numElements=${dataFileName[0]}
 
+    mkdir -p ${OUTDIR}/large/${numElements}
+
     # Run 5 trials for each data set
     for TRIAL in 1 2 3 4 5
     do
         printf "[TRIAL=${TRIAL}] Running on dataset: ${dataFile}\n"
-        ./bitonic_CPU_iterative ${dataFile} > ${OUTDIR}/large/${numElements}.out
+        ./bitonic_CPU_iterative ${dataFile} &> ${OUTDIR}/large/${numElements}/${numElements}_trial${TRIAL}.out
     done
     printf "\n"
 done

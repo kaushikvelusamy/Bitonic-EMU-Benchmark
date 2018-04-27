@@ -60,14 +60,6 @@ then
     exit -1
 fi
 
-# If we're running on SIM, then we run with emusim.x
-EXE="emusim.x bitonic_EMU_iterative.mwx"
-if [[ "${MODE}" == "HW" ]];
-then
-    # On HW, we use emu_handler_and_loader with some arguments
-    EXE="emu_handler_and_loader 0 0 bitonic_EMU_iterative.mwx --"
-fi
-
 OUTDIR+="/output_data"
 
 ######################################################################################
@@ -129,12 +121,30 @@ do
     done
     declare -a dataFileName
     numElements=${dataFileName[0]}
+    mkdir -p ${OUTDIR}/small/${numElements}
+
+    if [[ "${MODE}" == "SIM" ]];
+    then
+        mkdir -p ${OUTDIR}/small/${numElements}/cdc
+        mkdir -p ${OUTDIR}/small/${numElements}/vsf    
+    else
+        EXE="emu_handler_and_loader 0 0 bitonic_EMU_iterative.mwx --"
+    fi
 
     # Run 5 trials for each data set
     for TRIAL in 1 2 3 4 5
     do
+        if [[ "${MODE}" == "SIM" ]];
+        then
+            EXE="emusim.x --short_trace --gcs_per_nodelet 1 -o ${numElements}_trial${TRIAL} bitonic_EMU_iterative.mwx"
+        fi
         printf "[TRIAL=${TRIAL}] Running on dataset: ${dataFile}\n"
-        ${EXE} ${dataFile} > ${OUTDIR}/small/${numElements}.out
+        ${EXE} ${dataFile} &> ${OUTDIR}/small/${numElements}/${numElements}_trial${TRIAL}.out
+        if [[ "${MODE}" == "SIM" ]];
+        then
+            mv ${numElements}_trial${TRIAL}.vsf ${OUTDIR}/small/${numElements}/vsf
+            mv ${numElements}_trial${TRIAL}.cdc ${OUTDIR}/small/${numElements}/cdc
+        fi
     done
     printf "\n"
 done
@@ -192,12 +202,18 @@ do
     done
     declare -a dataFileName
     numElements=${dataFileName[0]}
+    if [[ "${MODE}" == "HW" ]];
+    then
+        EXE="emu_handler_and_loader 0 0 bitonic_EMU_iterative.mwx --"
+    fi
+
+    mkdir -p ${OUTDIR}/medium/${numElements}
 
     # Run 5 trials for each data set
     for TRIAL in 1 2 3 4 5
     do
         printf "[TRIAL=${TRIAL}] Running on dataset: ${dataFile}\n"
-        ${EXE} ${dataFile} > ${OUTDIR}/medium/${numElements}.out
+        ${EXE} ${dataFile} &> ${OUTDIR}/medium/${numElements}/${numElements}_trial${TRIAL}.out
     done
     printf "\n"
 done
@@ -241,12 +257,18 @@ do
     done
     declare -a dataFileName
     numElements=${dataFileName[0]}
+    if [[ "${MODE}" == "HW" ]];
+    then
+        EXE="emu_handler_and_loader 0 0 bitonic_EMU_iterative.mwx --"
+    fi
+
+    mkdir -p ${OUTDIR}/large/${numElements}
 
     # Run 5 trials for each data set
     for TRIAL in 1 2 3 4 5
     do
         printf "[TRIAL=${TRIAL}] Running on dataset: ${dataFile}\n"
-        ${EXE} ${dataFile} > ${OUTDIR}/large/${numElements}.out
+        ${EXE} ${dataFile} &> ${OUTDIR}/large/${numElements}/${numElements}_trial${TRIAL}.out
     done
     printf "\n"
 done
