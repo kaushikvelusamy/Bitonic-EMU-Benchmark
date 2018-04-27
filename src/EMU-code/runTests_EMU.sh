@@ -112,7 +112,7 @@ do
         s=${s#*"$delimiter"};
     done
     declare -a dataFileName
-    temp=${dataFileName[1]}
+    temp=${dataFileName[-1]}
     delimiter=.dat
     s=$temp$delimiter
     dataFileName=()
@@ -193,7 +193,7 @@ do
         s=${s#*"$delimiter"};
     done
     declare -a dataFileName
-    temp=${dataFileName[1]}
+    temp=${dataFileName[-1]}
     delimiter=.dat
     s=$temp$delimiter
     dataFileName=()
@@ -248,7 +248,7 @@ do
         s=${s#*"$delimiter"};
     done
     declare -a dataFileName
-    temp=${dataFileName[1]}
+    temp=${dataFileName[-1]}
     delimiter=.dat
     s=$temp$delimiter
     dataFileName=()

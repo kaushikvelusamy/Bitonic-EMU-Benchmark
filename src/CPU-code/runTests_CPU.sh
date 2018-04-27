@@ -94,7 +94,7 @@ do
         s=${s#*"$delimiter"};
     done
     declare -a dataFileName
-    temp=${dataFileName[1]}
+    temp=${dataFileName[-1]}
     delimiter=.dat
     s=$temp$delimiter
     dataFileName=()
@@ -104,7 +104,7 @@ do
     done
     declare -a dataFileName
     numElements=${dataFileName[0]}
-
+    echo $numElements
     mkdir -p ${OUTDIR}/small/${numElements}
 
     # Run 5 trials for each data set
@@ -145,7 +145,7 @@ do
         s=${s#*"$delimiter"};
     done
     declare -a dataFileName
-    temp=${dataFileName[1]}
+    temp=${dataFileName[-1]}
     delimiter=.dat
     s=$temp$delimiter
     dataFileName=()
@@ -196,7 +196,7 @@ do
         s=${s#*"$delimiter"};
     done
     declare -a dataFileName
-    temp=${dataFileName[1]}
+    temp=${dataFileName[-1]}
     delimiter=.dat
     s=$temp$delimiter
     dataFileName=()
