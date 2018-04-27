@@ -174,9 +174,9 @@ int main(int argc, char **argv)
     for (long s=2; s <= n; s*=2) {
         for (long i=0; i < n;i=i+s*2) {
             merge_up((InputArray+i),s);
-            //if (s < n) {
+            if (s < n) {
                 merge_down((InputArray+i+s),s);
-            //}
+            }
         }
     }   
  

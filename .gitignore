@@ -1,1 +1,5 @@
 dataset/
+*.o
+*.mwx
+*.cdc 
+*.vsf

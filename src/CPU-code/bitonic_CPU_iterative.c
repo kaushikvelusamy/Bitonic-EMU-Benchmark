@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 
     #ifdef TIMING
         int Events[NUM_EVENTS] = {PAPI_TOT_CYC, PAPI_L1_LDM, PAPI_L2_LDM, PAPI_L3_LDM};
-        long_long values[NUM_EVENTS];
+        long long values[NUM_EVENTS];
         int retval = PAPI_start_counters(Events, NUM_EVENTS);
         if(retval != PAPI_OK) {
             handle_error(retval);
@@ -179,7 +179,9 @@ int main(int argc, char **argv)
     for (long s=2; s <= n; s*=2) {
         for (long i=0; i < n;i=i+s*2) {
             merge_up((InputArray+i),s);
-            merge_down((InputArray+i+s),s);
+            if(s < n) {
+                merge_down((InputArray+i+s),s);
+            }
         }
     }   
  
@@ -203,6 +205,8 @@ int main(int argc, char **argv)
         printf("Test Result: %s; \t count: %ld; \n",  (result>0 ? "Failed" : "Passed"),n);
         fflush(stdout);
     #endif
+
+    free(InputArray);
 
     return 0;
 }
