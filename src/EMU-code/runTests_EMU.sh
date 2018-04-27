@@ -60,7 +60,8 @@ then
     exit -1
 fi
 
-OUTDIR+="/output_data"
+today=`date +%Y-%m-%d.%H:%M:%S`
+OUTDIR+="/output_data_${today}"
 
 ######################################################################################
 #
@@ -178,7 +179,7 @@ echo ""
 TIME_START=`date +%s`
 currDate=`date`
 printf "${YELLOW}######################################################################################\n${NOCOLOR}"
-printf "${CYAN}+ Running tests for bitonic sort (CPU, iterative) on medium data sets\n${NOCOLOR}"
+printf "${CYAN}+ Running tests for bitonic sort ((EMU ${MODE} iterative) on medium data sets\n${NOCOLOR}"
 printf "${RED} + START TIME: ${currDate}\n${NOCOLOR}"
 
 dataFiles=( $(ls -lSR ${DATADIR}/medium/* | sort -k 5 -n | sed 's/ \+/\t/g' | cut -f 9) )
@@ -233,7 +234,7 @@ echo ""
 TIME_START=`date +%s`
 currDate=`date`
 printf "${YELLOW}######################################################################################\n${NOCOLOR}"
-printf "${CYAN}+ Running tests for bitonic sort (CPU, iterative) on large data sets\n${NOCOLOR}"
+printf "${CYAN}+ Running tests for bitonic sort ((EMU ${MODE} iterative) on large data sets\n${NOCOLOR}"
 printf "${RED} + START TIME: ${currDate}\n${NOCOLOR}"
 
 dataFiles=( $(ls -lSR ${DATADIR}/large/* | sort -k 5 -n | sed 's/ \+/\t/g' | cut -f 9) )

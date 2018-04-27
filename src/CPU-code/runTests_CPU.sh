@@ -45,7 +45,10 @@ then
     show_help
     exit -1
 fi
-OUTDIR+="/output_data"
+
+today=`date +%Y-%m-%d.%H:%M:%S`
+OUTDIR+="/output_data_${today}"
+
 ######################################################################################
 #
 # 1.) Create output directory
