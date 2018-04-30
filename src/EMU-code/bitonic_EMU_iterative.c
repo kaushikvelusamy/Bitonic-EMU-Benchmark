@@ -186,7 +186,9 @@ int main(int argc, char **argv)
         if(nidstart != nidend) {
             printf("WARNING: Start and end nodes differ for timings\n");
         }
-        printf("######## TOTAL CYCLES: %ld\n", toc-tic);
+        printf("######## TOTAL CYCLES: %ld\n", toc-tic);    
+        return 0;
+    
     #endif
 
     #ifdef DEBUG
@@ -195,11 +197,6 @@ int main(int argc, char **argv)
         long result = testsortedresults(InputArray, n);
         printf("Test Result: %s; \t count: %ld; \n",  (result>0 ? "Failed" : "Passed"),n);
         fflush(stdout);
-    #endif
- 
-    #ifdef SIMULATOR
-        // Immediately exit; any other code slows down simulator
-        return 0;
     #endif
 
     return 0;
