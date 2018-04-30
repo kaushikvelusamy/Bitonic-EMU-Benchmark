@@ -1,0 +1,108 @@
+
+        SystemC 2.3.1-Accellera --- Feb  1 2018 08:32:04
+        Copyright (c) 1996-2014 by all Contributors,
+        ALL RIGHTS RESERVED
+Start untimed simulation with local date and time= Sun Apr 29 20:01:18 2018
+
+End untimed simulation with local date and time= Sun Apr 29 20:01:18 2018
+
+SysC Enumeration done. Program launching...
+Simulation @0 s with local date and time= Sun Apr 29 20:01:18 2018
+
+Simulation @1 ms with local date and time= Sun Apr 29 20:01:24 2018
+
+Simulation @2 ms with local date and time= Sun Apr 29 20:01:30 2018
+
+Simulation @3 ms with local date and time= Sun Apr 29 20:01:35 2018
+
+Simulation @4 ms with local date and time= Sun Apr 29 20:01:41 2018
+
+Simulation @5 ms with local date and time= Sun Apr 29 20:01:47 2018
+
+Simulation @6 ms with local date and time= Sun Apr 29 20:01:53 2018
+
+Simulation @7 ms with local date and time= Sun Apr 29 20:01:59 2018
+
+Simulation @8 ms with local date and time= Sun Apr 29 20:02:04 2018
+
+Simulation @9 ms with local date and time= Sun Apr 29 20:02:10 2018
+
+Simulation @10 ms with local date and time= Sun Apr 29 20:02:15 2018
+
+Simulation @11 ms with local date and time= Sun Apr 29 20:02:21 2018
+
+Simulation @12 ms with local date and time= Sun Apr 29 20:02:26 2018
+
+Simulation @13 ms with local date and time= Sun Apr 29 20:02:31 2018
+
+Simulation @14 ms with local date and time= Sun Apr 29 20:02:37 2018
+
+Simulation @15 ms with local date and time= Sun Apr 29 20:02:42 2018
+
+Simulation @16 ms with local date and time= Sun Apr 29 20:02:48 2018
+
+Simulation @17 ms with local date and time= Sun Apr 29 20:02:54 2018
+
+Simulation @18 ms with local date and time= Sun Apr 29 20:03:00 2018
+
+Simulation @19 ms with local date and time= Sun Apr 29 20:03:06 2018
+
+Simulation @20 ms with local date and time= Sun Apr 29 20:03:11 2018
+
+Simulation @21 ms with local date and time= Sun Apr 29 20:03:17 2018
+
+Simulation @22 ms with local date and time= Sun Apr 29 20:03:23 2018
+
+Simulation @23 ms with local date and time= Sun Apr 29 20:03:29 2018
+
+Simulation @24 ms with local date and time= Sun Apr 29 20:03:35 2018
+
+Simulation @25 ms with local date and time= Sun Apr 29 20:03:40 2018
+
+Simulation @26 ms with local date and time= Sun Apr 29 20:03:46 2018
+
+Simulation @27 ms with local date and time= Sun Apr 29 20:03:52 2018
+
+Simulation @28 ms with local date and time= Sun Apr 29 20:03:58 2018
+
+Simulation @29 ms with local date and time= Sun Apr 29 20:04:03 2018
+
+Simulation @30 ms with local date and time= Sun Apr 29 20:04:09 2018
+
+Simulation @31 ms with local date and time= Sun Apr 29 20:04:15 2018
+
+Simulation @32 ms with local date and time= Sun Apr 29 20:04:21 2018
+
+Simulation @33 ms with local date and time= Sun Apr 29 20:04:28 2018
+
+Simulation @34 ms with local date and time= Sun Apr 29 20:04:34 2018
+
+Simulation @35 ms with local date and time= Sun Apr 29 20:04:40 2018
+
+Simulation @36 ms with local date and time= Sun Apr 29 20:04:45 2018
+
+Simulation @37 ms with local date and time= Sun Apr 29 20:04:51 2018
+
+Simulation @38 ms with local date and time= Sun Apr 29 20:04:58 2018
+
+Simulation @39 ms with local date and time= Sun Apr 29 20:05:04 2018
+
+Simulation @40 ms with local date and time= Sun Apr 29 20:05:09 2018
+
+Simulation @41 ms with local date and time= Sun Apr 29 20:05:15 2018
+
+Simulation @42 ms with local date and time= Sun Apr 29 20:05:21 2018
+
+Simulation @43 ms with local date and time= Sun Apr 29 20:05:27 2018
+
+Simulation @44 ms with local date and time= Sun Apr 29 20:05:33 2018
+
+Simulation @45 ms with local date and time= Sun Apr 29 20:05:39 2018
+
+Simulation @46 ms with local date and time= Sun Apr 29 20:05:46 2018
+
+Simulation @47 ms with local date and time= Sun Apr 29 20:05:52 2018
+
+######## TOTAL CYCLES: 14165843
+
+Info: /OSCI/SystemC: Simulation stopped by user.

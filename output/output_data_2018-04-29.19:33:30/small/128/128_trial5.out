@@ -1,0 +1,32 @@
+
+        SystemC 2.3.1-Accellera --- Feb  1 2018 08:32:04
+        Copyright (c) 1996-2014 by all Contributors,
+        ALL RIGHTS RESERVED
+Start untimed simulation with local date and time= Sun Apr 29 19:41:10 2018
+
+End untimed simulation with local date and time= Sun Apr 29 19:41:10 2018
+
+SysC Enumeration done. Program launching...
+Simulation @0 s with local date and time= Sun Apr 29 19:41:10 2018
+
+Simulation @1 ms with local date and time= Sun Apr 29 19:41:15 2018
+
+Simulation @2 ms with local date and time= Sun Apr 29 19:41:21 2018
+
+Simulation @3 ms with local date and time= Sun Apr 29 19:41:27 2018
+
+Simulation @4 ms with local date and time= Sun Apr 29 19:41:33 2018
+
+Simulation @5 ms with local date and time= Sun Apr 29 19:41:39 2018
+
+Simulation @6 ms with local date and time= Sun Apr 29 19:41:45 2018
+
+Simulation @7 ms with local date and time= Sun Apr 29 19:41:51 2018
+
+Simulation @8 ms with local date and time= Sun Apr 29 19:41:57 2018
+
+Simulation @9 ms with local date and time= Sun Apr 29 19:42:02 2018
+
+######## TOTAL CYCLES: 2806085
+
+Info: /OSCI/SystemC: Simulation stopped by user.

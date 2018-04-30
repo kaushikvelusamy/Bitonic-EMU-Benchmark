@@ -19,11 +19,7 @@
 #include "stdlib.h"
 #include "distributed.h"
 
-#ifdef HARDWARE
-    #include "timing.h"
-#endif
-
-#ifdef SIMULATOR
+#ifndef DEBUG
     #include "timing.h"
 #endif
 
@@ -168,7 +164,7 @@ int main(int argc, char **argv)
 
     #ifdef HARDWARE
         long nidstart = NODE_ID();
-        unsigned long tic = CLOCK();
+        volatile unsigned long tic = CLOCK();
     #endif
 
     #ifdef SIMULATOR
@@ -185,7 +181,7 @@ int main(int argc, char **argv)
     }   
 
     #ifdef HARDWARE
-        unsigned long toc = CLOCK();
+        volatile unsigned long toc = CLOCK();
         long nidend = NODE_ID();
         if(nidstart != nidend) {
             printf("WARNING: Start and end nodes differ for timings\n");

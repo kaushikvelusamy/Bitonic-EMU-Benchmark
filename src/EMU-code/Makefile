@@ -9,19 +9,18 @@ HARDWARE=1
 
 ifeq ($(SIMULATOR), 1)
   CFLAGS = -DSIMULATOR
-  HARDWARE=0
 endif
 ifeq ($(HARDWARE), 1)
-  CFLAGS = -DHARDWARE
+  CFLAGS += -DHARDWARE
 endif
 ifeq ($(DEBUG), 1)
-  CFLAGS += -DDEBUG
+  CFLAGS = -DDEBUG
 endif
 
 all: bitonic_EMU_iterative
 
 bitonic_EMU_iterative: bitonic_EMU_iterative.c
-	${CC} ${CFLAGS} bitonic_EMU_iterative.c -o bitonic_EMU_iterative.mwx
+	${CC} ${CFLAGS} bitonic_EMU_iterative.c -o ../../bin/bitonic_EMU_iterative.mwx
 
 clean:
 	rm -rf *.o bitonic_EMU_iterative.mwx *.cdc *.vsf
