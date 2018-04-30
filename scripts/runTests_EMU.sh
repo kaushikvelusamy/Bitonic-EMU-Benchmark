@@ -62,7 +62,7 @@ fi
 
 numTrials=5
 # If we're using the simulator, then we only need to do 1 trial
-if [[ "${MODE}" != "SIM" ]];
+if [[ "${MODE}" == "SIM" ]];
 then
     numTrials=1
 fi
@@ -135,6 +135,7 @@ do
     then
         mkdir -p ${OUTDIR}/small/${numElements}/cdc
         mkdir -p ${OUTDIR}/small/${numElements}/vsf    
+        mkdir -p ${OUTDIR}/small/${numElements}/tqd
     else
         EXE="emu_handler_and_loader 0 0 ../bin/bitonic_EMU_iterative.mwx --"
     fi
@@ -152,6 +153,7 @@ do
         then
             mv ${numElements}_trial${TRIAL}.vsf ${OUTDIR}/small/${numElements}/vsf
             mv ${numElements}_trial${TRIAL}.cdc ${OUTDIR}/small/${numElements}/cdc
+            mv ${numElements}_trial${TRIAL}.tqd ${OUTDIR}/small/${numElements}/tqd
         fi
     done
     printf "\n"
