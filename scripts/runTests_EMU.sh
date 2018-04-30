@@ -145,7 +145,7 @@ do
     do
         if [[ "${MODE}" == "SIM" ]];
         then
-            EXE="emusim.x --capture_timing_queues --gcs_per_nodelet 1 -o ${numElements}_trial${TRIAL} ../bin/bitonic_EMU_iterative.mwx"
+            EXE="emusim.x --core_clk_mhz 1200 --capture_timing_queues --gcs_per_nodelet 1 -o ${numElements}_trial${TRIAL} ../bin/bitonic_EMU_iterative.mwx"
         fi
         printf "[TRIAL=${TRIAL}] Running on dataset: ${dataFile}\n"
         ${EXE} ${dataFile} &> ${OUTDIR}/small/${numElements}/${numElements}_trial${TRIAL}.out
