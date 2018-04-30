@@ -76,5 +76,5 @@ if __name__ == "__main__":
                         print("**** FAILED to process file %s" %trialFile)
                         print("\t%s" %str(e))
                 # Output data to CSV
-                fOut.write("%d,%d\n" %(int(numElements), int(TOT_CYC/numFiles))))
+                fOut.write("%d,%d\n" %(int(numElements), int(TOT_CYC/numFiles)))
     fOut.close()
