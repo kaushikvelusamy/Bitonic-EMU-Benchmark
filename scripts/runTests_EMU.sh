@@ -60,6 +60,13 @@ then
     exit -1
 fi
 
+numTrials=5
+# If we're using the simulator, then we only need to do 1 trial
+if [[ "${MODE}" != "SIM" ]];
+then
+    numTrials=1
+fi
+
 today=`date +%Y-%m-%d.%H:%M:%S`
 OUTDIR+="/output_data_${today}"
 
@@ -132,8 +139,8 @@ do
         EXE="emu_handler_and_loader 0 0 ../bin/bitonic_EMU_iterative.mwx --"
     fi
 
-    # Run 5 trials for each data set
-    for TRIAL in 1 2 3 4 5
+    # Run 5 trials for each data set if HW, else only run once
+    for TRIAL in `seq 1 ${numTrials}`
     do
         if [[ "${MODE}" == "SIM" ]];
         then
@@ -211,7 +218,7 @@ do
     mkdir -p ${OUTDIR}/medium/${numElements}
 
     # Run 5 trials for each data set
-    for TRIAL in 1 2 3 4 5
+    for TRIAL in `seq 1 ${numTrials}`
     do
         printf "[TRIAL=${TRIAL}] Running on dataset: ${dataFile}\n"
         ${EXE} ${dataFile} &> ${OUTDIR}/medium/${numElements}/${numElements}_trial${TRIAL}.out
@@ -266,7 +273,7 @@ do
     mkdir -p ${OUTDIR}/large/${numElements}
 
     # Run 5 trials for each data set
-    for TRIAL in 1 2 3 4 5
+    for TRIAL in `seq 1 ${numTrials}`    
     do
         printf "[TRIAL=${TRIAL}] Running on dataset: ${dataFile}\n"
         ${EXE} ${dataFile} &> ${OUTDIR}/large/${numElements}/${numElements}_trial${TRIAL}.out
