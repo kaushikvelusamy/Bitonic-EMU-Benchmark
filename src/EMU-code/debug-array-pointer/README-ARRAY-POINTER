@@ -1,0 +1,51 @@
+To compile
+=============
+
+make clean
+	deletes *.cdc *.part.tqd *.tqd *.vsf *.mwx files
+make 
+	compiles the ORIGINAL Bitonic Sort Iterative Code to be executed in the HARDWARE without array pointer changes
+	[Original Code, Hardware]
+make DEBUG=1
+	compiles the ORIGINAL Bitonic Sort Iterative Code to check whether the algorithm works correctly without array pointer changes
+	[Original Code, No HW/SIM, Just to DEBUG the Algorithm]
+make SIMULATOR=1	
+	compiles the ORIGINAL Bitonic Sort Iterative Code to be executed in the SIMULATOR without array pointer changes
+	[Orignal Code, SIMULATOR]
+
+make SIMULATOR=2
+	compiles the ORIGINAL Bitonic Sort Iterative Code to be executed in the SIMULATOR (with DEBUG statements) without array pointer changes
+	[Orignal Code, SIMULATOR, DEBUG]
+
+make POINTER=1
+	compiles the MODIFIED Bitonic Sort Iterative Code to be executed in the HARDWARE with array pointer changes
+	[Modified Code, Hardware]
+
+make POINTER=2
+	compiles the MODIFIED Bitonic Sort Iterative Code to check whether the algorithm works correctly with array pointer changes
+	[Modified Code,  No HW/SIM, Just to DEBUG the Algorithm]
+
+make POINTER=3
+	compiles the MODIFIED Bitonic Sort Iterative Code to be executed in the SIMULATOR with array pointer changes
+	[Modified Code, SIMULATOR]
+
+make POINTER=4
+	compiles the MODIFIED Bitonic Sort Iterative Code to be executed in the SIMULATOR (with DEBUG statements) with array pointer changes
+	[Modified Code, SIMULATOR, DEBUG]
+
+bitonic_EMU_iterative.mwx is generated in the current folder
+
+
+To Run
+===========
+
+emusim.x --core_clk_mhz 150 --capture_timing_queues --gcs_per_nodelet 1 bitonic_EMU_iterative.mwx ../../../dataset/small/dataset8.dat 
+
+
+
+To Run on Many Inputs
+========================
+
+cp bitonic_EMU_iterative.mwx ../../../bin/
+
+And Follow the procedure given in the Github main README.md File : To Run the Benchmark Script
