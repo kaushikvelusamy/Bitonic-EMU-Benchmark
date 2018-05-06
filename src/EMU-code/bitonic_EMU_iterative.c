@@ -27,8 +27,8 @@
 
 void swaploop_asc(long i, long step, long* arr) 
 {
-    long j,k,temp;
-    for (j=i,k=0; k<step;j++,k++) 
+    long j,temp;
+    for (j=i; j<step; j++) 
     {
         if (arr[j] > arr[j+step])
         {
@@ -41,8 +41,8 @@ void swaploop_asc(long i, long step, long* arr)
 
 void swaploop_dsc (long i, long step, long* arr)
 {
-    long j,k,temp;
-    for (j=i,k=0;k<step;j++,k++) 
+    long j,temp;
+    for (j=i; j<step; j++) 
     {
         if (arr[j] < arr[j+step]) 
         {
