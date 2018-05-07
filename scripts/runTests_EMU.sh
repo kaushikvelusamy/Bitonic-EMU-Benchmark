@@ -60,7 +60,7 @@ then
     exit -1
 fi
 
-numTrials=5
+numTrials=1
 # If we're using the simulator, then we only need to do 1 trial
 if [[ "${MODE}" == "SIM" ]];
 then

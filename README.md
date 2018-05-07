@@ -92,7 +92,33 @@ output-data-TIME
 		......
 ```
 
+# To Run the parsing scripts to generate the CSV file from the output Folder
+The parsed output format will look like this:
+    NUM ELEMENTS, TOTAL CYCLES, TOTAL THREADS CREATED, TOTAL THREAD MIGRATIONS, SIM WALL CLOCK TIME
+    To get the specific values for threads created/migrated on a per-node basis,
+    you'll need to look at the files yourself.
+    The arguments to the script are the following:
+    1.) top-level directory of the output to parse. For example, 
+        output_data/ which will contain small/ (only this directory since
+        we don't bother trying to simulate the larger data sets)
+    2.) The name of the output CSV file
 
+```
+    usage: python parse_EMU-SIM_metrics.py output_data/ myOutput.csv
+```
+
+Parses the output from the EMU (hardware) code. What we're gathering are the
+    total cycles. This script will average these values for each data set trials and produce 
+    an output CSV of the form:
+    NUM ELEMENTS, TOTAL CYCLES
+    The arguments to the script are the following:
+    1.) top-level directory of the output to parse. For example, 
+        output_data/ which will contain small/, medium/ and large/
+    2.) The name of the output CSV file
+
+```
+    usage: python parse_EMU-HW_metrics.py output_data/ myOutput.csv
+```
 
 # Updates on the Current Work
 * Implemented a CPU-based version of bitonic sort that is parallelized via Cilk. This will give a reference, that we can possibly compare the EMU code to CPU based cilk version of the bitonic sort. As they both use Cilk, the underlying structure of the algorithm and execution will be identical (i.e., they will both create the same number of threads, etc.).

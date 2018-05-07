@@ -18,7 +18,6 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "distributed.h"
-#include "math.h"
 
 #ifndef DEBUG
     #include "timing.h"
@@ -26,10 +25,11 @@
 
 #define direction 1 //direction 1 for asc and 0 for des
 
-void swaploop_asc(long i, long step, long* arr) 
+#ifdef POINTER
+void swaploop_asc(long step, long* arr) 
 {
-    long j,temp;
-    for (j=i; j<step; j++) 
+    long j,k,temp;
+    for (j=0,k=0; k<step;j++,k++) 
     {
         if (arr[j] > arr[j+step])
         {
@@ -40,10 +40,10 @@ void swaploop_asc(long i, long step, long* arr)
     }
 }   
 
-void swaploop_dsc (long i, long step, long* arr)
+void swaploop_dsc (long step, long* arr)
 {
-    long j,temp;
-    for (j=i; j<step; j++) 
+    long j,k,temp;
+    for (j=0,k=0;k<step;j++,k++) 
     {
         if (arr[j] < arr[j+step]) 
         {
@@ -63,7 +63,71 @@ void merge_up(long *arr, long n)
     {
         for(i=0; i<n; i+=step*2) 
         {
-            cilk_spawn swaploop_asc(i,step,arr);
+            cilk_spawn swaploop_asc(step,arr+i);
+
+        }
+        cilk_sync;
+        step = step/2;
+    }
+}
+
+void merge_down(long *arr, long n) 
+{
+    long step=n/2;
+    long i;
+    while (step > 0) 
+    {
+        for(i=0; i<n; i+=step*2)
+        {
+            cilk_spawn swaploop_dsc(step,arr+i);
+        }
+        cilk_sync;
+        step = step/2;
+    }
+}
+
+#endif
+
+
+#ifndef POINTER
+void swaploop_asc(long i, long step, long* arr) 
+{
+    long j,k,temp;
+    for (j=i,k=0; k<step;j++,k++) 
+    {
+        if (arr[j] > arr[j+step])
+        {
+            temp = arr[j];
+            arr[j]=arr[j+step];
+            arr[j+step]=temp;
+        }
+    }
+}   
+
+void swaploop_dsc (long i,long step, long* arr)
+{
+    long j,k,temp;
+    for (j=i,k=0;k<step;j++,k++) 
+    {
+        if (arr[j] < arr[j+step]) 
+        {
+            temp = arr[j];
+            arr[j]=arr[j+step];
+            arr[j+step]=temp;
+        }
+    }
+}
+
+
+void merge_up(long *arr, long n) 
+{
+    long step=n/2;
+    long i;
+    while (step > 0) 
+    {
+        for(i=0; i<n; i+=step*2) 
+        {
+            cilk_spawn swaploop_asc(i, step,arr);
 
         }
         cilk_sync;
@@ -85,6 +149,8 @@ void merge_down(long *arr, long n)
         step = step/2;
     }
 }
+
+#endif
 
 #ifdef DEBUG
     void printArray(long arr[], long n) 
@@ -146,35 +212,9 @@ int main(int argc, char **argv)
         }
         m /= 2;
     }
-
-    /*
-        Read in file in chunks so we don't run out of
-        memory (we need to fread() into a "normal"
-        malloc'd array, which is limited by the available
-        memory on a single nodelet (currently 8GB).
-    */
-    long bytesPerNodelet = BYTES_PER_NODELET();
-    long *InputArray = (long *)mw_malloc1dlong(n);
-    long totalBytes = n * sizeof(long);
-    long numChunks = (long)ceil(totalBytes / (double)bytesPerNodelet);
-    long chunkSize = (long)fmin((double)totalBytes, (double)bytesPerNodelet);
-    long numElemsPerChunk = chunkSize/sizeof(long);
-    long *temp = (long *)malloc(chunkSize);
-    long curr = 0;
-    for(long i = 0; i < numChunks; i++) {
-        fread(temp, sizeof(long), numElemsPerChunk, fp);
-        for(long j = 0; j < numElemsPerChunk; j++) {
-            InputArray[curr+j] = temp[j];
-        }
-        curr += numElemsPerChunk;
-    }
-    fclose(fp);
-    free(temp);
-    
-
     
     //long *InputArray =(long *) mw_malloc1dlong(n);
-    /*long *temp =(long *)malloc(sizeof(long) * n);
+    long *temp =(long *)malloc(sizeof(long) * n);
     fread(temp, sizeof(long), n, fp);
     fclose(fp);
     long *InputArray =(long *) mw_malloc1dlong(n);
@@ -182,7 +222,6 @@ int main(int argc, char **argv)
         InputArray[i] = temp[i];
     }
     free(temp);
-    */
 
     #ifdef DEBUG
         printf("INITIAL ARRAY:\n");
@@ -215,8 +254,6 @@ int main(int argc, char **argv)
             printf("WARNING: Start and end nodes differ for timings\n");
         }
         printf("######## TOTAL CYCLES: %ld\n", toc-tic);    
-        return 0;
-    
     #endif
 
     #ifdef DEBUG
