@@ -18,6 +18,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "distributed.h"
+#include "math.h"
 
 #ifndef DEBUG
     #include "timing.h"
@@ -145,9 +146,35 @@ int main(int argc, char **argv)
         }
         m /= 2;
     }
+
+    /*
+        Read in file in chunks so we don't run out of
+        memory (we need to fread() into a "normal"
+        malloc'd array, which is limited by the available
+        memory on a single nodelet (currently 8GB).
+    */
+    long bytesPerNodelet = BYTES_PER_NODELET();
+    long *InputArray = (long *)mw_malloc1dlong(n);
+    long totalBytes = n * sizeof(long);
+    long numChunks = (long)ceil(totalBytes / (double)bytesPerNodelet);
+    long chunkSize = (long)fmin((double)totalBytes, (double)bytesPerNodelet);
+    long numElemsPerChunk = chunkSize/sizeof(long);
+    long *temp = (long *)malloc(chunkSize);
+    long curr = 0;
+    for(long i = 0; i < numChunks; i++) {
+        fread(temp, sizeof(long), numElemsPerChunk, fp);
+        for(long j = 0; j < numElemsPerChunk; j++) {
+            InputArray[curr+j] = temp[j];
+        }
+        curr += numElemsPerChunk;
+    }
+    fclose(fp);
+    free(temp);
+    
+
     
     //long *InputArray =(long *) mw_malloc1dlong(n);
-    long *temp =(long *)malloc(sizeof(long) * n);
+    /*long *temp =(long *)malloc(sizeof(long) * n);
     fread(temp, sizeof(long), n, fp);
     fclose(fp);
     long *InputArray =(long *) mw_malloc1dlong(n);
@@ -155,6 +182,7 @@ int main(int argc, char **argv)
         InputArray[i] = temp[i];
     }
     free(temp);
+    */
 
     #ifdef DEBUG
         printf("INITIAL ARRAY:\n");
