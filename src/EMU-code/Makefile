@@ -23,4 +23,4 @@ bitonic_EMU_iterative: bitonic_EMU_iterative.c
 	${CC} ${CFLAGS} bitonic_EMU_iterative.c -o ../../bin/bitonic_EMU_iterative.mwx
 
 clean:
-	rm -rf *.o *.mwx ../../bin/bitonic_EMU_iterative.mwx *.cdc *.vsf
+	rm -rf *.o *.mwx ../../bin/bitonic_EMU_iterative.mwx *.cdc *.vsf *.tqd
