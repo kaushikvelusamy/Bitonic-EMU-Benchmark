@@ -1,5 +1,5 @@
 /*
-    Author: Kaushik Velusamy and Thomas Rolinger
+    Author: Kaushik Velusamy, Thomas Rolinger and Janice McMahon 
     Date:   04/25/2018
     File:   bitonic_EMU_iterative.c
 
@@ -28,8 +28,8 @@
 
 void swaploop_asc(long i, long step, long* arr) 
 {
-    long j,temp;
-    for (j=i; j<step; j++) 
+    long j,k,temp;
+    for (j=i,k=0; k<step; j++,k++) 
     {
         if (arr[j] > arr[j+step])
         {
@@ -42,8 +42,8 @@ void swaploop_asc(long i, long step, long* arr)
 
 void swaploop_dsc (long i, long step, long* arr)
 {
-    long j,temp;
-    for (j=i; j<step; j++) 
+    long j,k,temp;
+    for (j=i,k=0; k<step; j++,k++) 
     {
         if (arr[j] < arr[j+step]) 
         {
@@ -215,8 +215,6 @@ int main(int argc, char **argv)
             printf("WARNING: Start and end nodes differ for timings\n");
         }
         printf("######## TOTAL CYCLES: %ld\n", toc-tic);    
-        return 0;
-    
     #endif
 
     #ifdef DEBUG
