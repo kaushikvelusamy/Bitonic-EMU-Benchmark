@@ -16,6 +16,23 @@
 void comparator(unsigned long s, unsigned long c, long *In, long *Out,
 		unsigned long n)
 {
+  unsigned long dist = 1 << c;
+  unsigned long i = 0;
+  for (i = 0; i < n; i += 2 * dist) {
+    for (long j = 0; j < dist; j++) {
+      unsigned long r = i + j;
+      unsigned long r1 = r + dist;
+      unsigned long rdiv2sm2 = (r >> s) & 1;
+      unsigned long r1div2sm2 = (r1 >> s) & 1;
+      long min_val = MIN(In[r], In[r1]);
+      long max_val = MAX(In[r], In[r1]);
+      if (! rdiv2sm2) Out[r] = min_val;
+      else Out[r] = max_val;
+      if (r1div2sm2) Out[r1] = min_val;
+      else Out[r1] = max_val;
+    }
+  }
+  /*
   for (unsigned long r = 0; r < n; r++) {
     unsigned long r1 = r ^ (1 << c);
     unsigned long rdiv2cm2 = (r >> c) & 1;
@@ -23,6 +40,7 @@ void comparator(unsigned long s, unsigned long c, long *In, long *Out,
     if (rdiv2cm2 == rdiv2sm2) Out[r] = MIN(In[r], In[r1]);
     else Out[r] = MAX(In[r], In[r1]);
   }
+  */
 }
 
 void print_array(long *arr, unsigned long n);
@@ -30,38 +48,23 @@ void print_array(long *arr, unsigned long n);
 int main(int argc, char **argv)
 {
   unsigned long bintest = 0;
-  unsigned long nnodes = 8;
-  unsigned long nthreads = 16;
-  unsigned long printflag = 0;
-  unsigned long epn = 131072;
   unsigned long buf_size = 1024;
-  double clockrate = 150.0;
 
   int c;
-  while ((c = getopt(argc, argv, "hbn:t:e:s:c:p:")) != -1)
+  while ((c = getopt(argc, argv, "hbs:")) != -1)
     {
       switch (c)
         {
         case 'h':
           printf("Optional argument: <file> (prompted if not present)\n");
-          printf("Program options: -hbntescp\n");
+          printf("Program options: -hbs\n");
           printf("  -h print this help and exit\n");
           printf("  -b binary file, detault text\n");
-          printf("  -n <N> for number of nodelets, default NODELETS()\n");
-          printf("  -t <N> for number of threads, default 16\n");
-          printf("  -e <N> for max elts per nodelet, default 131072\n");
           printf("  -s <N> for buffer size, default 1024\n");
-          printf("  -c <N> for clock rate, default 150.0MHz\n");
-          printf("  -p <N> for debug level > 0\n");
           exit(0);
           break;
         case 'b': bintest = 1; break;
-        case 'n': nnodes = atol(optarg); break;
-        case 't': nthreads = atol(optarg); break;
-        case 'e': epn = atol(optarg); break;
         case 's': buf_size = atol(optarg); break;
-        case 'c': clockrate = atof(optarg); break;
-	case 'p': printflag = atol(optarg); break;
         }
     }
 
@@ -74,17 +77,34 @@ int main(int argc, char **argv)
   else fp = fopen(infilenm, "r");
   if (! fp) { fprintf(stderr, "can't open file %s\n", infilenm); exit(0); }
 
-  long *InArray =(long *)malloc(nnodes * epn * sizeof(long));
-  long *OutArray =(long *)malloc(nnodes * epn * sizeof(long));
+  // first pass: count the number of elements
+  unsigned long elt_index = 0;
   long *temp =(long *)malloc(buf_size * sizeof(long));
-  long elt_index = 0;
   while (! feof(fp)) {
-    long numread = 0;
+    unsigned long numread = 0;
     if (bintest) numread = fread(temp, sizeof(long), buf_size, fp);
     else while ((fscanf(fp, "%ld", &temp[numread]) != EOF) &&
-		(numread < buf_size)) numread++;
+                (numread < buf_size)) numread++;
+    elt_index += numread;
+  }
+  rewind(fp);
 
-    for (long i = 0; i < numread; i++) {
+  // find next power of 2
+  unsigned long power = 1;
+  unsigned long lg2power = 0;
+  while (power < elt_index) { power <<= 1; lg2power++; }
+
+  // second pass: read data into distributed array
+  long *InArray =(long *)malloc(power * sizeof(long));
+  long *OutArray =(long *)malloc(power * sizeof(long));
+  elt_index = 0;
+  while (! feof(fp)) {
+    unsigned long numread = 0;
+    if (bintest) numread = fread(temp, sizeof(long), buf_size, fp);
+    else while ((fscanf(fp, "%ld", &temp[numread]) != EOF) &&
+                (numread < buf_size)) numread++;
+
+    for (unsigned long i = 0; i < numread; i++) {
       InArray[elt_index] = temp[i];
       elt_index++;
     }
@@ -92,11 +112,7 @@ int main(int argc, char **argv)
   free(temp);
   fclose(fp);
 
-  unsigned long power = 1;
-  unsigned long lg2power = 0;
-  while (power < elt_index) { power <<= 1; lg2power++; }
   for (long i = elt_index; i < power - 1; i++) InArray[i] = LONG_MAX;
-
   printf("INPUT:\n");
   print_array(InArray, elt_index);
 
@@ -114,8 +130,8 @@ int main(int argc, char **argv)
   }
 
   for (long i = 1; i < elt_index - 1; i++) {
-    if (InArray[i] > InArray[i + 1]) {
-      printf("FAILED\n"); fflush(stdout);
+    if (In[i] > In[i + 1]) {
+      printf("FAILED %ld\n", i); fflush(stdout);
       break;
     }
   }
