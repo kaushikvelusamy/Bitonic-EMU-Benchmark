@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <getopt.h>
 #include "memoryweb.h"
 #include "cilk.h"
 
-#define GET_NODE(v, p) (v / p)
-#define GET_OFFSET(v, p) (v % p)
-#define GET_INDEX(n, o, p) (n * p + o)
+#define GET_NODE(v, p) ((v) / (p))
+#define GET_OFFSET(v, p) ((v) % (p))
 
 #define MAX(a,b)              \
   ({ __typeof__ (a) _a = (a); \
@@ -18,59 +18,47 @@
   __typeof__ (b) _b = (b);  \
   _a < _b ? _a : _b;})
 
+replicated unsigned long total_elts;
 replicated unsigned long elts_per_nlet;
 replicated unsigned long numthreads;
 replicated unsigned long curr_index;
 
-long dest_max_nlet(long g, long p, long n, long o)
-{
-  return 0; // compute destination
-}
-
-long dest_min_nlet(long g, long p, long n, long o)
-{
-  return 0; // compute destination
-}
-
-long dest_max_offset(long g, long p, long n, long o)
-{
-  return 0; // compute desintation
-}
-
-long dest_min_offset(long g, long p, long n, long o)
-{
-  return 0; // compute destination
-}
-
 // grab a pair of values at an offset and write max/min to correct dest
-void comparator_thread(unsigned long *currp, unsigned long offset, long stage,
-		       long step, long *In, long **Out)
+void comparator_thread(unsigned long *currp, unsigned long offset, 
+		       unsigned long s, long c, long **In, long **Out)
 {
-  long nnum = NODE_ID();
-  long epn = elts_per_nlet;
+  unsigned long nnum = NODE_ID();
+  unsigned long epn = elts_per_nlet;
+  unsigned long tote = total_elts;
   while (offset < epn) {
-    long max_val = MAX(In[offset], In[offset + 1]);
-    long min_val = MIN(In[offset], In[offset + 1]);
-    long max_nlet = dest_max_nlet(stage, step, nnum, offset);
-    long min_nlet = dest_min_nlet(stage, step, nnum, offset);
-    long max_off = dest_max_offset(stage, step, nnum, offset);
-    long min_off = dest_min_offset(stage, step, nnum, offset);
-    Out[max_nlet][max_off] = max_val; // may migrate to get pointer
-    Out[min_nlet][min_off] = min_val; // replace with pointer computation
+    unsigned long r = nnum * epn + offset;
+    if (r >= tote) break;
+    unsigned long r1 = r ^ (1 << c);
+    unsigned long r1nlet = GET_NODE(r1, epn);
+    unsigned long r1off = GET_OFFSET(r1, epn);
+    unsigned long rdiv2cm2 = (r >> c) & 1;
+    unsigned long rdiv2sm2 = (r >> s) & 1;
+    long value = In[nnum][offset];
+    long partner = In[r1nlet][r1off];
+
+    if (rdiv2cm2 == rdiv2sm2) Out[nnum][offset] = MIN(value, partner);
+    else Out[nnum][offset] = MAX(value, partner);
 
     offset = ATOMIC_ADDMS((long *)currp, 2);
   }
 }
 
-void comparator_nodelet(unsigned long *currp, long stage, long step, long *In,
-			long **Out)
+void comparator_nodelet(unsigned long *currp, unsigned long stage, long step,
+			long **In, long **Out)
 {
   unsigned long nthreads = numthreads;
-  if (nthreads > elts_per_nlet / 2) nthreads = elts_per_nlet / 2;
-  *currp = 2 * nthreads;
-  for (unsigned long i = 0; i < nthreads; i *= 2)
+  if (nthreads > elts_per_nlet) nthreads = elts_per_nlet;
+  *currp = nthreads;
+  for (unsigned long i = 0; i < nthreads; i++)
     cilk_spawn comparator_thread(currp, i, stage, step, In, Out);
 }
+
+void print_array(long **arr);
 
 int main(int argc, char **argv)
 {
@@ -78,7 +66,6 @@ int main(int argc, char **argv)
   unsigned long nnodes = NODELETS();
   unsigned long nthreads = 16;
   unsigned long printflag = 0;
-  unsigned long epn = 131072;
   unsigned long buf_size = 1024;
   double clockrate = 150.0;
 
@@ -89,12 +76,11 @@ int main(int argc, char **argv)
         {
         case 'h':
           printf("Optional argument: <file> (prompted if not present)\n");
-          printf("Program options: -hbntescp\n");
+          printf("Program options: -hbntscp\n");
           printf("  -h print this help and exit\n");
           printf("  -b binary file, detault text\n");
           printf("  -n <N> for number of nodelets, default NODELETS()\n");
           printf("  -t <N> for number of threads, default 16\n");
-          printf("  -e <N> for max elts per nodelet, default 131072\n");
           printf("  -s <N> for buffer size, default 1024\n");
           printf("  -c <N> for clock rate, default 150.0MHz\n");
           printf("  -p <N> for debug level > 0\n");
@@ -103,7 +89,6 @@ int main(int argc, char **argv)
         case 'b': bintest = 1; break;
         case 'n': nnodes = atol(optarg); break;
         case 't': nthreads = atol(optarg); break;
-        case 'e': epn = atol(optarg); break;
         case 's': buf_size = atol(optarg); break;
         case 'c': clockrate = atof(optarg); break;
 	case 'p': printflag = atol(optarg); break;
@@ -119,23 +104,44 @@ int main(int argc, char **argv)
   else fp = fopen(infilenm, "r");
   if (! fp) { fprintf(stderr, "can't open file %s\n", infilenm); exit(0); }
 
-  mw_replicated_init((long *)&numthreads, (long)nthreads);
+  // first pass: count the number of elements
+  unsigned long elt_index = 0;
+  long *temp =(long *)malloc(buf_size * sizeof(long));
+  while (! feof(fp)) {
+    unsigned long numread = 0;
+    if (bintest) numread = fread(temp, sizeof(long), buf_size, fp);
+    else while ((fscanf(fp, "%ld", &temp[numread]) != EOF) &&
+		(numread < buf_size)) numread++;
+    elt_index += numread;
+  }
+  rewind(fp);
+
+  // find next power of 2
+  unsigned long power = 1;
+  unsigned long lg2power = 0;
+  while (power < elt_index) { power <<= 1; lg2power++; }
+  unsigned long epn = power / nnodes;
+  if (nnodes * epn < power) epn++;
+
+  // initialize replicated variables
+  mw_replicated_init((long *)&total_elts, (long)power);
   mw_replicated_init((long *)&elts_per_nlet, (long)epn);
+  mw_replicated_init((long *)&numthreads, (long)nthreads);
   mw_replicated_init((long *)&curr_index, 0);
 
+  // second pass: read data into distributed array
   long **InArray =(long **)mw_malloc2d(nnodes, epn * sizeof(long));
   long **OutArray =(long **)mw_malloc2d(nnodes, epn * sizeof(long));
-  long *temp =(long *)malloc(buf_size * sizeof(long));
-  long elt_index = 0;
+  elt_index = 0;
   while (! feof(fp)) {
-    long numread = 0;
+    unsigned long numread = 0;
     if (bintest) numread = fread(temp, sizeof(long), buf_size, fp);
     else while ((fscanf(fp, "%ld", &temp[numread]) != EOF) &&
 		(numread < buf_size)) numread++;
 
-    for (long i = 0; i < numread; i++) {
-      long nlet = GET_NODE(elt_index, epn);
-      long off = GET_OFFSET(elt_index, epn);
+    for (unsigned long i = 0; i < numread; i++) {
+      unsigned long nlet = GET_NODE(elt_index, epn);
+      unsigned long off = GET_OFFSET(elt_index, epn);
       InArray[nlet][off] = temp[i];
       elt_index++;
     }
@@ -143,15 +149,16 @@ int main(int argc, char **argv)
   free(temp);
   fclose(fp);
 
-#ifndef SIM0
-  if (printflag == 1) {
-    for (long i = 0; i < nnodes; i++) {
-      for (long j = 0; j < epn; j++) {
-	printf("NID %ld ofset %ld value %ld\n", i, j, InArray[i][j]);
-        fflush(stdout);
-      }
-    }
+  // fill to nearest power of 2
+  for (unsigned long i = elt_index; i < power - 1; i++) {
+    unsigned long nlet = GET_NODE(i, epn);
+    unsigned long off = GET_OFFSET(i, epn);
+    InArray[nlet][off] = LONG_MAX;
   }
+
+#ifndef SIM0
+  if (printflag == 1)
+    { printf("INPUT:\n"); fflush(stdout); print_array(InArray); }
 #endif
 
 #ifdef SIM1
@@ -164,11 +171,11 @@ int main(int argc, char **argv)
 #endif
   long **In = InArray;
   long **Out = OutArray;
-  for (long stage = 2; stage <= elt_index; stage *= 2) {
-    for (long step = 2; step < stage * 2; step *= 2) {
-      for (long i = 0; i < nnodes; i++) {
+  for (unsigned long stage = 1; stage <= lg2power; stage++) {
+    for (long step = stage - 1; step >= 0; step--) {
+      for (unsigned long i = 0; i < nnodes; i++) {
 	unsigned long *currp = mw_get_nth(&curr_index, i);
-	cilk_spawn comparator_nodelet(currp, stage, step, In[i], Out);
+	cilk_spawn comparator_nodelet(currp, stage, step, In, Out);
       }
       cilk_sync;
       long **Tmp = In;
@@ -185,31 +192,34 @@ int main(int argc, char **argv)
   if (nid != nidend) printf("timing problem %lu %lu\n", nid, nidend);
   unsigned long totaltime = endtime - starttime;
   double ms = ((double) totaltime / clockrate) / 1000.0;
-  printf("Nlets %lu Clock %.1lf Total %lu Time(ms) %.1lf\n",
-	 nnodes, clockrate, totaltime, ms); fflush(stdout);
+  printf("Nlets %lu Nthreads %lu Clock %.1lf Total %lu Time(ms) %.1lf\n",
+	 nnodes, nthreads, clockrate, totaltime, ms); fflush(stdout);
 
-  for (long i = 1; i < elt_index - 1; i++) {
-    long nlet = GET_NODE(i, epn);
-    long off = GET_OFFSET(i, epn);
-    long nletp1 = GET_NODE(i + 1, epn);
-    long offp1 = GET_OFFSET(i + 1, epn);
-    if (InArray[nlet][off] > InArray[nletp1][offp1]) {
+  for (unsigned long i = 0; i < power - 1; i++) {
+    unsigned long nlet = GET_NODE(i, epn);
+    unsigned long off = GET_OFFSET(i, epn);
+    unsigned long nletp1 = GET_NODE(i + 1, epn);
+    unsigned long offp1 = GET_OFFSET(i + 1, epn);
+    if (In[nlet][off] > In[nletp1][offp1]) {
       printf("FAILED\n"); fflush(stdout);
       break;
     }
   }
 
-  if (printflag == 2) {
-    printf("SORTED ARRAY:\n");
-    printf("[%ld", InArray[0][0]); fflush(stdout);
-    for (long i = 1; i < elt_index; i++) {
-      long nlet = GET_NODE(i, epn);
-      long off = GET_OFFSET(i, epn);
-      printf(",%ld", InArray[nlet][off]); fflush(stdout);
-    }
-    printf("]\n"); fflush(stdout);
-  }
+  if (printflag == 2)
+    { printf("OUTPUT:\n"); fflush(stdout); print_array(In); }
 #endif
 #endif
     return 0;
+}
+
+void print_array(long **arr)
+{
+  printf("[%ld", arr[0][0]); fflush(stdout);
+  for (unsigned long i = 1; i < total_elts; i++) {
+    unsigned long nlet = GET_NODE(i, elts_per_nlet);
+    unsigned long off = GET_OFFSET(i, elts_per_nlet);
+    printf(",%ld", arr[nlet][off]); fflush(stdout);
+  }
+  printf("]\n"); fflush(stdout);
 }

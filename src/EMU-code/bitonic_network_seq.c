@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <getopt.h>
 
 #define MAX(a,b)              \
@@ -12,27 +13,19 @@
   __typeof__ (b) _b = (b);  \
   _a < _b ? _a : _b;})
 
-long dest_max_index(long g, long p, long i)
+void comparator(unsigned long s, unsigned long c, long *In, long *Out,
+		unsigned long n)
 {
-  return 0; // compute desintation
-}
-
-long dest_min_index(long g, long p, long i)
-{
-  return 0; // compute destination
-}
-
-void comparator(long stage, long step, long *In, long *Out, long n)
-{
-  for (long i = 0; i < n; i += 2) {
-    long max_val = MAX(In[i], In[i+1]);
-    long min_val = MIN(In[i], In[i+1]);
-    long jmax = dest_max_index(stage, step, i);
-    long jmin = dest_min_index(stage, step, i);
-    Out[jmax] = max_val;
-    Out[jmin] = min_val;
+  for (unsigned long r = 0; r < n; r++) {
+    unsigned long r1 = r ^ (1 << c);
+    unsigned long rdiv2cm2 = (r >> c) & 1;
+    unsigned long rdiv2sm2 = (r >> s) & 1;
+    if (rdiv2cm2 == rdiv2sm2) Out[r] = MIN(In[r], In[r1]);
+    else Out[r] = MAX(In[r], In[r1]);
   }
 }
+
+void print_array(long *arr, unsigned long n);
 
 int main(int argc, char **argv)
 {
@@ -99,29 +92,27 @@ int main(int argc, char **argv)
   free(temp);
   fclose(fp);
 
-#ifndef SIM0
-  if (printflag == 1) {
-    for (long i = 0; i < nnodes; i++) {
-      for (long j = 0; j < epn; j++) {
-	printf("NID %ld ofset %ld value %ld\n", i, j, InArray[i * j]);
-        fflush(stdout);
-      }
-    }
-  }
-#endif
+  unsigned long power = 1;
+  unsigned long lg2power = 0;
+  while (power < elt_index) { power <<= 1; lg2power++; }
+  for (long i = elt_index; i < power - 1; i++) InArray[i] = LONG_MAX;
+
+  printf("INPUT:\n");
+  print_array(InArray, elt_index);
 
   long *In = InArray;
   long *Out = OutArray;
-  for (long stage = 2; stage <= elt_index; stage *= 2) {
-    for (long step = 2; step < stage * 2; step *= 2) {
-      comparator(stage, step, In, Out, nnodes * epn);
+  for (long stage = 1; stage <= lg2power; stage++) {
+    for (long step = stage - 1; step >= 0; step--) {
+      comparator(stage, step, In, Out, power);
+      printf("Stage %ld Step %ld OUT:\n", stage, step);
+      print_array(Out, power);
       long *Tmp = In;
       In = Out;
       Out = Tmp;
     }
   }
 
-#ifndef SIM0
   for (long i = 1; i < elt_index - 1; i++) {
     if (InArray[i] > InArray[i + 1]) {
       printf("FAILED\n"); fflush(stdout);
@@ -129,14 +120,15 @@ int main(int argc, char **argv)
     }
   }
 
-  if (printflag == 2) {
-    printf("SORTED ARRAY:\n");
-    printf("[%ld", InArray[0]); fflush(stdout);
-    for (long i = 1; i < elt_index; i++) {
-      printf(",%ld", InArray[i]); fflush(stdout);
-    }
-    printf("]\n"); fflush(stdout);
-  }
-#endif
-    return 0;
+  printf("SORTED ARRAY:\n");
+  print_array(In, elt_index);
+  return 0;
+}
+
+void print_array(long *arr, unsigned long n)
+{
+  printf("[%ld", arr[0]); fflush(stdout);
+  for (long i = 1; i < n; i++)
+    { printf(",%ld", arr[i]); fflush(stdout); }
+  printf("]\n"); fflush(stdout);
 }
