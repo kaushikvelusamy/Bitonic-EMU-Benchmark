@@ -13,8 +13,9 @@
   __typeof__ (b) _b = (b);  \
   _a < _b ? _a : _b;})
 
-void comparator(unsigned long s, unsigned long c, long *In, long *Out,
-		unsigned long n)
+void print_array(long *arr, unsigned long n);
+
+void comparator(unsigned long s, long c, long *In, long *Out, unsigned long n)
 {
   unsigned long dist = 1 << c;
   unsigned long i = 0;
@@ -42,8 +43,6 @@ void comparator(unsigned long s, unsigned long c, long *In, long *Out,
   }
   */
 }
-
-void print_array(long *arr, unsigned long n);
 
 int main(int argc, char **argv)
 {
@@ -118,7 +117,7 @@ int main(int argc, char **argv)
 
   long *In = InArray;
   long *Out = OutArray;
-  for (long stage = 1; stage <= lg2power; stage++) {
+  for (unsigned long stage = 1; stage <= lg2power; stage++) {
     for (long step = stage - 1; step >= 0; step--) {
       comparator(stage, step, In, Out, power);
       printf("Stage %ld Step %ld OUT:\n", stage, step);

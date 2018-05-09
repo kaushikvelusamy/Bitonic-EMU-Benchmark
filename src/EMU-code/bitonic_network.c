@@ -70,7 +70,7 @@ int main(int argc, char **argv)
   double clockrate = 150.0;
 
   int c;
-  while ((c = getopt(argc, argv, "hbn:t:e:s:c:p:")) != -1)
+  while ((c = getopt(argc, argv, "hbn:t:s:c:p:")) != -1)
     {
       switch (c)
         {
@@ -130,8 +130,8 @@ int main(int argc, char **argv)
   mw_replicated_init((long *)&curr_index, 0);
 
   // second pass: read data into distributed array
-  long **InArray =(long **)mw_malloc2d(nnodes, epn * sizeof(long));
-  long **OutArray =(long **)mw_malloc2d(nnodes, epn * sizeof(long));
+  long **InArray = (long **)mw_malloc2d(nnodes, epn * sizeof(long));
+  long **OutArray = (long **)mw_malloc2d(nnodes, epn * sizeof(long));
   elt_index = 0;
   while (! feof(fp)) {
     unsigned long numread = 0;
