@@ -58,19 +58,19 @@ void comparator_nodelet(unsigned long *currp, unsigned long stage, long step,
     cilk_spawn comparator_thread(currp, i, stage, step, In, Out);
 }
 
-void print_array(long **arr);
+void print_array(long **arr, unsigned long n);
 
 int main(int argc, char **argv)
 {
   unsigned long bintest = 0;
-  unsigned long nnodes = NODELETS();
+  unsigned long buf_size = 1024;
+  unsigned long nnodes1 = NODELETS();
   unsigned long nthreads = 16;
   unsigned long printflag = 0;
-  unsigned long buf_size = 1024;
   double clockrate = 150.0;
 
   int c;
-  while ((c = getopt(argc, argv, "hbn:t:s:c:p:")) != -1)
+  while ((c = getopt(argc, argv, "hbs:n:t:c:p:")) != -1)
     {
       switch (c)
         {
@@ -79,17 +79,17 @@ int main(int argc, char **argv)
           printf("Program options: -hbntscp\n");
           printf("  -h print this help and exit\n");
           printf("  -b binary file, detault text\n");
-          printf("  -n <N> for number of nodelets, default NODELETS()\n");
-          printf("  -t <N> for number of threads, default 16\n");
           printf("  -s <N> for buffer size, default 1024\n");
+          printf("  -n <N> for nodelets (power of 2), default NODELETS()\n");
+          printf("  -t <N> for number of threads, default 16\n");
           printf("  -c <N> for clock rate, default 150.0MHz\n");
           printf("  -p <N> for debug level > 0\n");
           exit(0);
           break;
         case 'b': bintest = 1; break;
-        case 'n': nnodes = atol(optarg); break;
-        case 't': nthreads = atol(optarg); break;
         case 's': buf_size = atol(optarg); break;
+        case 'n': nnodes1 = atol(optarg); break;
+        case 't': nthreads = atol(optarg); break;
         case 'c': clockrate = atof(optarg); break;
 	case 'p': printflag = atol(optarg); break;
         }
@@ -116,12 +116,13 @@ int main(int argc, char **argv)
   }
   rewind(fp);
 
-  // find next power of 2
+  // find next power of 2, elts and nodes
   unsigned long power = 1;
   unsigned long lg2power = 0;
   while (power < elt_index) { power <<= 1; lg2power++; }
-  unsigned long epn = power / nnodes;
-  if (nnodes * epn < power) epn++;
+  unsigned long nnodes = 1;
+  while (nnodes < nnodes1) nnodes <<= 1;
+  unsigned long epn = power / nnodes; // epn is 2^x
 
   // initialize replicated variables
   mw_replicated_init((long *)&total_elts, (long)power);
@@ -129,7 +130,7 @@ int main(int argc, char **argv)
   mw_replicated_init((long *)&numthreads, (long)nthreads);
   mw_replicated_init((long *)&curr_index, 0);
 
-  // second pass: read data into distributed array
+  // second pass: read data into distributed array, start with block mapping
   long **InArray = (long **)mw_malloc2d(nnodes, epn * sizeof(long));
   long **OutArray = (long **)mw_malloc2d(nnodes, epn * sizeof(long));
   elt_index = 0;
@@ -157,8 +158,7 @@ int main(int argc, char **argv)
   }
 
 #ifndef SIM0
-  if (printflag == 1)
-    { printf("INPUT:\n"); fflush(stdout); print_array(InArray); }
+  printf("INPUT:\n"); fflush(stdout); print_array(InArray, power);
 #endif
 
 #ifdef SIM1
@@ -206,17 +206,16 @@ int main(int argc, char **argv)
     }
   }
 
-  if (printflag == 2)
-    { printf("OUTPUT:\n"); fflush(stdout); print_array(In); }
+  printf("OUTPUT:\n"); fflush(stdout); print_array(In, power);
 #endif
 #endif
     return 0;
 }
 
-void print_array(long **arr)
+void print_array(long **arr, unsigned long n)
 {
   printf("[%ld", arr[0][0]); fflush(stdout);
-  for (unsigned long i = 1; i < total_elts; i++) {
+  for (unsigned long i = 1; i < n; i++) {
     unsigned long nlet = GET_NODE(i, elts_per_nlet);
     unsigned long off = GET_OFFSET(i, elts_per_nlet);
     printf(",%ld", arr[nlet][off]); fflush(stdout);

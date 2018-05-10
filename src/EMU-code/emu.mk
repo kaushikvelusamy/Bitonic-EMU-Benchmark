@@ -16,16 +16,15 @@ ifdef SIM
 CFLAGS += -DSIM$(SIM)
 endif
 
-#EXE ?= bitonic_EMU_iterative
 EXE ?= bitonic_network
+
+all: $(EXE).mwx
 
 run_seq: bitonic_network_seq
 	./$< $(INPUTS)
 
 bitonic_network_seq: bitonic_network_seq.c
 	gcc -std=c99 -o $@ $<
-
-all: $(EXE).mwx
 
 clean:
 	rm -f *.o *.mwx *.ll *.s *.sxp *.cdc *.vsf *.hdd

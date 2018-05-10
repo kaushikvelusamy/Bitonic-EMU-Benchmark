@@ -47,22 +47,25 @@ void comparator(unsigned long s, long c, long *In, long *Out, unsigned long n)
 int main(int argc, char **argv)
 {
   unsigned long bintest = 0;
+  unsigned long sizetest = 0;
   unsigned long buf_size = 1024;
 
   int c;
-  while ((c = getopt(argc, argv, "hbs:")) != -1)
+  while ((c = getopt(argc, argv, "hbfs:")) != -1)
     {
       switch (c)
         {
         case 'h':
           printf("Optional argument: <file> (prompted if not present)\n");
-          printf("Program options: -hbs\n");
+          printf("Program options: -hbfs\n");
           printf("  -h print this help and exit\n");
           printf("  -b binary file, detault text\n");
+          printf("  -f first number is size, default no\n");
           printf("  -s <N> for buffer size, default 1024\n");
           exit(0);
           break;
         case 'b': bintest = 1; break;
+        case 'f': sizetest = 1; break;
         case 's': buf_size = atol(optarg); break;
         }
     }
@@ -76,9 +79,15 @@ int main(int argc, char **argv)
   else fp = fopen(infilenm, "r");
   if (! fp) { fprintf(stderr, "can't open file %s\n", infilenm); exit(0); }
 
+  // read initial size and discard, if there
+  long *temp =(long *)malloc(buf_size * sizeof(long));
+  if (sizetest) {
+    if (bintest) fread(temp, sizeof(long), 1, fp);
+    else fscanf(fp, "%ld", &temp[0]) != EOF;
+  }
+
   // first pass: count the number of elements
   unsigned long elt_index = 0;
-  long *temp =(long *)malloc(buf_size * sizeof(long));
   while (! feof(fp)) {
     unsigned long numread = 0;
     if (bintest) numread = fread(temp, sizeof(long), buf_size, fp);
@@ -87,6 +96,10 @@ int main(int argc, char **argv)
     elt_index += numread;
   }
   rewind(fp);
+  if (sizetest) {
+    if (bintest) fread(temp, sizeof(long), 1, fp);
+    else fscanf(fp, "%ld", &temp[0]) != EOF;
+  }
 
   // find next power of 2
   unsigned long power = 1;
