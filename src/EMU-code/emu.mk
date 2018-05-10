@@ -27,7 +27,7 @@ bitonic_network_seq: bitonic_network_seq.c
 	gcc -std=c99 -o $@ $<
 
 clean:
-	rm -f *.o *.mwx *.ll *.s *.sxp *.cdc *.vsf *.hdd
+	rm -f *.o *.mwx *.ll *.s *.sxp *.cdc *.vsf *.hdd $(EXE)_seq
 
 seq:
 	gcc -std=c99 -DSEQ=1 $(CFLAGS) $(EXE).c
