@@ -44,7 +44,7 @@ void comparator_thread(unsigned long *currp, unsigned long offset,
     if (rdiv2cm2 == rdiv2sm2) Out[nnum][offset] = MIN(value, partner);
     else Out[nnum][offset] = MAX(value, partner);
 
-    offset = ATOMIC_ADDMS((long *)currp, 2);
+    offset = ATOMIC_ADDMS((long *)currp, 1);
   }
 }
 
@@ -63,6 +63,7 @@ void print_array(long **arr, unsigned long n);
 int main(int argc, char **argv)
 {
   unsigned long bintest = 0;
+  unsigned long sizetest = 0;
   unsigned long buf_size = 1024;
   unsigned long nnodes1 = NODELETS();
   unsigned long nthreads = 16;
@@ -70,15 +71,16 @@ int main(int argc, char **argv)
   double clockrate = 150.0;
 
   int c;
-  while ((c = getopt(argc, argv, "hbs:n:t:c:p:")) != -1)
+  while ((c = getopt(argc, argv, "hbfs:n:t:c:p:")) != -1)
     {
       switch (c)
         {
         case 'h':
           printf("Optional argument: <file> (prompted if not present)\n");
-          printf("Program options: -hbntscp\n");
+          printf("Program options: -hbfsntcp\n");
           printf("  -h print this help and exit\n");
           printf("  -b binary file, detault text\n");
+	  printf("  -f first number is size, default no\n");
           printf("  -s <N> for buffer size, default 1024\n");
           printf("  -n <N> for nodelets (power of 2), default NODELETS()\n");
           printf("  -t <N> for number of threads, default 16\n");
@@ -87,6 +89,7 @@ int main(int argc, char **argv)
           exit(0);
           break;
         case 'b': bintest = 1; break;
+        case 'f': sizetest = 1; break;
         case 's': buf_size = atol(optarg); break;
         case 'n': nnodes1 = atol(optarg); break;
         case 't': nthreads = atol(optarg); break;
@@ -104,9 +107,15 @@ int main(int argc, char **argv)
   else fp = fopen(infilenm, "r");
   if (! fp) { fprintf(stderr, "can't open file %s\n", infilenm); exit(0); }
 
+  // read initial size and discard, if there
+  long *temp =(long *)malloc(buf_size * sizeof(long));
+  if (sizetest) {
+    if (bintest) fread(temp, sizeof(long), 1, fp);
+    else fscanf(fp, "%ld", &temp[0]);
+  }
+
   // first pass: count the number of elements
   unsigned long elt_index = 0;
-  long *temp =(long *)malloc(buf_size * sizeof(long));
   while (! feof(fp)) {
     unsigned long numread = 0;
     if (bintest) numread = fread(temp, sizeof(long), buf_size, fp);
@@ -115,6 +124,10 @@ int main(int argc, char **argv)
     elt_index += numread;
   }
   rewind(fp);
+  if (sizetest) {
+    if (bintest) fread(temp, sizeof(long), 1, fp);
+    else fscanf(fp, "%ld", &temp[0]);
+  }
 
   // find next power of 2, elts and nodes
   unsigned long power = 1;
@@ -151,14 +164,14 @@ int main(int argc, char **argv)
   fclose(fp);
 
   // fill to nearest power of 2
-  for (unsigned long i = elt_index; i < power - 1; i++) {
+  for (unsigned long i = elt_index; i < power; i++) {
     unsigned long nlet = GET_NODE(i, epn);
     unsigned long off = GET_OFFSET(i, epn);
     InArray[nlet][off] = LONG_MAX;
   }
 
 #ifndef SIM0
-  printf("INPUT:\n"); fflush(stdout); print_array(InArray, power);
+  //  printf("INPUT: "); fflush(stdout); print_array(InArray, power);
 #endif
 
 #ifdef SIM1

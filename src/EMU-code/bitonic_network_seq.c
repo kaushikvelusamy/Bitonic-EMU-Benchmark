@@ -124,24 +124,23 @@ int main(int argc, char **argv)
   free(temp);
   fclose(fp);
 
-  for (long i = elt_index; i < power - 1; i++) InArray[i] = LONG_MAX;
-  printf("INPUT:\n");
-  print_array(InArray, elt_index);
+  for (long i = elt_index; i < power; i++) InArray[i] = LONG_MAX;
+  //  printf("INPUT: "); print_array(InArray, elt_index);
 
   long *In = InArray;
   long *Out = OutArray;
   for (unsigned long stage = 1; stage <= lg2power; stage++) {
     for (long step = stage - 1; step >= 0; step--) {
       comparator(stage, step, In, Out, power);
-      printf("Stage %ld Step %ld OUT:\n", stage, step);
-      print_array(Out, power);
+      //      printf("Stage %ld Step %ld OUT:\n", stage, step);
+      //      print_array(Out, power);
       long *Tmp = In;
       In = Out;
       Out = Tmp;
     }
   }
 
-  for (long i = 1; i < elt_index - 1; i++) {
+  for (long i = 1; i < power - 1; i++) {
     if (In[i] > In[i + 1]) {
       printf("FAILED %ld\n", i); fflush(stdout);
       break;
