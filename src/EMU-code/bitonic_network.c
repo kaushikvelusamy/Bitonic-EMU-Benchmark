@@ -170,18 +170,34 @@ int main(int argc, char **argv)
     InArray[nlet][off] = LONG_MAX;
   }
 
-#ifndef SIM0
-  //  printf("INPUT: "); fflush(stdout); print_array(InArray, power);
+  /*
+        This way, we can run in debug mode without also having the
+        simulator timing.
+
+        For now, the only time we don't want to NOT use starttiming is
+        when we run in debug mode.
+  */
+
+  int startTiming = 1;
+#ifdef DEBUG
+    printf("INPUT: "); fflush(stdout); print_array(InArray, power);
+    startTiming = 0;
 #endif
 
-#ifdef SIM1
+  if(startTiming) {
+    starttiming();
+  }
+
+/*#ifdef SIM1
   starttiming();
 #else
+*/
 #ifndef SIM0
+  //starttiming();
   unsigned long nid = NODE_ID();
   unsigned long starttime = CLOCK();
 #endif
-#endif
+//#endif
   long **In = InArray;
   long **Out = OutArray;
   for (unsigned long stage = 1; stage <= lg2power; stage++) {
@@ -207,7 +223,10 @@ int main(int argc, char **argv)
   double ms = ((double) totaltime / clockrate) / 1000.0;
   printf("Nlets %lu Nthreads %lu Clock %.1lf Total %lu Time(ms) %.1lf\n",
 	 nnodes, nthreads, clockrate, totaltime, ms); fflush(stdout);
+  printf("TOTAL CYCLES: %lu\n", totaltime);
+#endif
 
+#ifdef DEBUG
   for (unsigned long i = 0; i < power - 1; i++) {
     unsigned long nlet = GET_NODE(i, epn);
     unsigned long off = GET_OFFSET(i, epn);
