@@ -95,7 +95,7 @@ mkdir -p ${OUTDIR}
 for numNodes in 1 2 4 8
 do
     mkdir -p ${OUTDIR}/${numNodes}nodes
-    for numThreads in 1 2 4 8 16 32
+    for numThreads in 1 2 4 8 16 32 64
     do
         mkdir -p ${OUTDIR}/${numNodes}nodes/${numThreads}threads
     done
@@ -120,7 +120,7 @@ do
     for numNodes in 1 2 4 8
     do
         # For each number of threads to test with
-        for numThreads in 1 2 4 8 16 32
+        for numThreads in 1 2 4 8 16 32 64
         do
             # Helper function for parsing file names
             # Silly way to parse out the number of elements from the file name
