@@ -192,9 +192,9 @@ def parseNetworkSort(topDir, fOut):
         for e in ELEMENTS:
             for n in NODES:
                 for t in THREADS: 
-                    for m in resDict[e][(n,t)]:
-                        fOut.write("%s," %str(m))
-                    fOut.write("\n")
+                    for i in range(0, len(resDict[e][(n,t)])-1):
+                        fOut.write("%s," %str(resDict[e][(n,t)][i]))
+                    fOut.write("%s\n" %str(resDict[e][(n,t)][-1]))
     except Exception, e:
         print("**** FAILED to write out result")
         print("\t%s" %str(e))
