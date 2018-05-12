@@ -12,7 +12,7 @@ import os
     We gather the total cycles and wall clock time
     The parsed output format will look like this:
 
-    SORT TYPE, NUM ELEMENTS, NUM NODES, NUM THREADS, TOTAL CYCLES, WALL CLOCK TIME(s)
+    PLATFORM, SORT TYPE, NUM ELEMENTS, NUM NODES, NUM THREADS, TOTAL CYCLES, WALL CLOCK TIME(s)
 
     For the network code, we use two columns: NUM NODES and NUM THREADS. These
     are empty for the dynamic code (set to -1)
@@ -84,7 +84,7 @@ def parseDynamicSort(topDir, fOut):
         WALL_TIME = getWallClock(resFile)
         
         # Output results
-        fOut.write("DYNAMIC,%d,-1,-1,%d,%d\n" %(int(numElements), TOT_CYC, WALL_TIME))
+        fOut.write("HARDWARE,DYNAMIC,%d,-1,-1,%d,%d\n" %(int(numElements), TOT_CYC, WALL_TIME))
 
     fOut.close()
 
@@ -150,7 +150,7 @@ def parseNetworkSort(topDir, fOut):
                 #
                 
                 # Update results
-                resDict[int(numElements)][(int(numNodes),int(numThreads))] = ["NETWORK", int(numElements), numNodes, numThreads, TOT_CYC, WALL_TIME]
+                resDict[int(numElements)][(int(numNodes),int(numThreads))] = ["HARDWARE","NETWORK", int(numElements), numNodes, numThreads, TOT_CYC, WALL_TIME]
 
     # Output the results in a reason order
     NODES.sort()
@@ -196,7 +196,7 @@ if __name__ == "__main__":
     fOut = open(outFile, "w")
 
     # Write out header. 
-    fOut.write("SORT TYPE,NUM ELEMENTS,NUM NODES,NUM THREADS,TOTAL CYCLES,WALL CLOCK TIME (s)\n")  
+    fOut.write("PLATFORM,SORT TYPE,NUM ELEMENTS,NUM NODES,NUM THREADS,TOTAL CYCLES,WALL CLOCK TIME (s)\n")  
   
     # Depending on the sort type, we have different parsing to do
     if(sortType == "DYNAMIC"):

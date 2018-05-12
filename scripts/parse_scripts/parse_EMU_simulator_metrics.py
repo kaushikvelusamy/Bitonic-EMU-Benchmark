@@ -13,7 +13,7 @@ import os
     We can also get the simulator wall clock time
     The parsed output format will look like this:
 
-    SORT TYPE, NUM ELEMENTS, NUM NODES, NUM THREADS, TOTAL CYCLES, TOTAL THREADS CREATED, TOTAL THREAD MIGRATIONS, SIM WALL CLOCK TIME(s)
+    PLATFORM, SORT TYPE, NUM ELEMENTS, NUM NODES, NUM THREADS, TOTAL CYCLES, TOTAL THREADS CREATED, TOTAL THREAD MIGRATIONS, SIM WALL CLOCK TIME(s)
 
     For the network code, we use two columns: NUM NODES and NUM THREADS. These
     are empty for the dynamic code (set to -1)
@@ -108,7 +108,7 @@ def parseDynamicSort(topDir, fOut):
         vsfFile = subDir + "/vsf/" + "%selements.vsf" %numElements
         THREAD_MIGRATE, THREAD_CREATE = getThreadInfo(vsfFile)
         # Output results
-        fOut.write("DYNAMIC,%d,-1,-1,%d,%d,%d,%d\n" %(int(numElements), TOT_CYC, THREAD_CREATE, THREAD_MIGRATE, SIM_WALL))
+        fOut.write("SIMULATOR,DYNAMIC,%d,-1,-1,%d,%d,%d,%d\n" %(int(numElements), TOT_CYC, THREAD_CREATE, THREAD_MIGRATE, SIM_WALL))
 
     fOut.close()
 
@@ -182,7 +182,7 @@ def parseNetworkSort(topDir, fOut):
                 THREAD_MIGRATE, THREAD_CREATE = getThreadInfo(vsfFile)
                 
                 # Update results
-                resDict[int(numElements)][(int(numNodes),int(numThreads))] = ["NETWORK", int(numElements), numNodes, numThreads, TOT_CYC, THREAD_CREATE, THREAD_MIGRATE, SIM_WALL]
+                resDict[int(numElements)][(int(numNodes),int(numThreads))] = ["SIMULATOR","NETWORK", int(numElements), numNodes, numThreads, TOT_CYC, THREAD_CREATE, THREAD_MIGRATE, SIM_WALL]
 
     # Output the results in a reason order
     NODES.sort()
@@ -228,7 +228,7 @@ if __name__ == "__main__":
     fOut = open(outFile, "w")
 
     # Write out header. 
-    fOut.write("SORT TYPE,NUM ELEMENTS,NUM NODES,NUM THREADS,TOTAL CYCLES,TOTAL THREADS CREATED,TOTAL THREAD MIGRATIONS,SIM WALL CLOCK TIME (s)\n")
+    fOut.write("PLATFORM,SORT TYPE,NUM ELEMENTS,NUM NODES,NUM THREADS,TOTAL CYCLES,TOTAL THREADS CREATED,TOTAL THREAD MIGRATIONS,SIM WALL CLOCK TIME (s)\n")
     
     # Depending on the sort type, we have different parsing to do
     if(sortType == "DYNAMIC"):
