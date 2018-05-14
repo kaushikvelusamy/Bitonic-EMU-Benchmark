@@ -189,9 +189,9 @@ def parseNetworkSort(topDir, fOut):
     THREADS.sort()
     ELEMENTS.sort()
     try:
-        for e in ELEMENTS:
-            for n in NODES:
-                for t in THREADS: 
+        for n in NODES:
+            for t in THREADS:
+                for e in ELEMENTS:
                     for i in range(0, len(resDict[e][(n,t)])-1):
                         fOut.write("%s," %str(resDict[e][(n,t)][i]))
                     fOut.write("%s\n" %str(resDict[e][(n,t)][-1]))
