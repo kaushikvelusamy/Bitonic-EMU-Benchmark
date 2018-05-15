@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 
 '''
     Author: Thomas Rolinger (tbrolin@cs.umd.edu)
@@ -27,6 +28,10 @@ import os
 
     usage: python parse_EMU_hardware_metrics.py output_data/ dynamic-or-network myOutput.csv
 '''
+
+# regular expression used to parse time output
+r = re.compile("([0-9]*[.,]?[0-9]*)([a-zA-Z]+)")
+
 ##################################################################################################
 def getCycles(resFile):
     TOT_CYC = 0
@@ -53,12 +58,18 @@ def getWallClock(resFile):
         # Find the line that has "real"
         for line in lines:
             if "real" in line:
-                # Get minutes
-                mins = int(line.split("real")[-1].strip().split("m")[0])
-                # Get seconds
-                secs = int(line.split("m")[-1].strip().split(".")[0].strip())
-                # get total secs
-                WALL = 60*mins + secs
+                # this can be formatted as Xh Xm Xs
+                tokens = line.split()[1:]
+                for t in tokens:
+                    m = r.match(t)
+                    num = m.group(1).split(".")[0]
+                    scale = m.group(2)
+                    if scale == "h":
+                        WALL += 3600 * int(num)
+                    elif scale == "m":
+                        WALL += 60 * int(num)
+                    else:
+                        WALL += int(num)
         return WALL
     except Exception, e:
         print("**** WALL FAILED to process file %s" %resFile)
