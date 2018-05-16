@@ -20,6 +20,10 @@ ifdef DEBUG
 CFLAGS += -DDEBUG
 endif
 
+ifdef CYCLIC
+CFLAGS += -DCYCLIC
+endif
+
 EXE_NETWORK ?= bitonic_network
 EXE_DYNAMIC ?= bitonic_dynamic
 
@@ -32,7 +36,7 @@ bitonic_network_seq: bitonic_network_seq.c
 	gcc -std=c99 -o $@ $<
 
 clean:
-	rm -f *.o *.mwx *.ll *.s *.sxp *.cdc *.vsf *.hdd $(EXE)_seq
+	rm -f *.o *.mwx *.ll *.s *.sxp *.cdc *.vsf *.hdd *.tqd $(EXE)_seq
 
 seq:
 	gcc -std=c99 -DSEQ=1 $(CFLAGS) $(EXE).c

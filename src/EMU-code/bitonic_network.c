@@ -5,8 +5,17 @@
 #include "memoryweb.h"
 #include "cilk.h"
 
-#define GET_NODE(v, p) ((v) / (p))
-#define GET_OFFSET(v, p) ((v) % (p))
+#ifndef CYCLIC
+    // p is elements per nodelet
+    #define GET_NODE(v, p) ((v) / (p))
+    #define GET_OFFSET(v, p) ((v) % (p))
+#else
+    // n is number of nodelets
+    #define GET_NODE(v, n) ((v) % (n))
+    #define GET_OFFSET(v, n) ((v) / (n))
+#endif
+
+
 
 #define MAX(a,b)              \
   ({ __typeof__ (a) _a = (a); \
@@ -22,6 +31,7 @@ replicated unsigned long total_elts;
 replicated unsigned long elts_per_nlet;
 replicated unsigned long numthreads;
 replicated unsigned long curr_index;
+replicated unsigned long numNodes;
 
 // grab a pair of values at an offset and write max/min to correct dest
 void comparator_thread(unsigned long *currp, unsigned long offset, 
@@ -30,19 +40,30 @@ void comparator_thread(unsigned long *currp, unsigned long offset,
   unsigned long nnum = NODE_ID();
   unsigned long epn = elts_per_nlet;
   unsigned long tote = total_elts;
+  unsigned long iter = -1;
   while (offset < epn) {
+    iter++;
     unsigned long r = nnum * epn + offset;
     if (r >= tote) break;
     unsigned long r1 = r ^ (1 << c);
-    unsigned long r1nlet = GET_NODE(r1, epn);
-    unsigned long r1off = GET_OFFSET(r1, epn);
+    #ifndef CYCLIC
+        unsigned long rnlet = GET_NODE(r, epn);
+        unsigned long roff = GET_OFFSET(r, epn);
+        unsigned long r1nlet = GET_NODE(r1, epn);
+        unsigned long r1off = GET_OFFSET(r1, epn);
+    #else
+        unsigned long rnlet = GET_NODE(r, numNodes);
+        unsigned long roff = GET_OFFSET(r, numNodes);
+        unsigned long r1nlet = GET_NODE(r1, numNodes);
+        unsigned long r1off = GET_OFFSET(r1, numNodes);
+    #endif
     unsigned long rdiv2cm2 = (r >> c) & 1;
     unsigned long rdiv2sm2 = (r >> s) & 1;
-    long value = In[nnum][offset];
+    long value = In[rnlet][roff];
     long partner = In[r1nlet][r1off];
 
-    if (rdiv2cm2 == rdiv2sm2) Out[nnum][offset] = MIN(value, partner);
-    else Out[nnum][offset] = MAX(value, partner);
+    if (rdiv2cm2 == rdiv2sm2) Out[rnlet][roff] = MIN(value, partner);
+    else Out[rnlet][roff] = MAX(value, partner);
 
     offset = ATOMIC_ADDMS((long *)currp, 1);
   }
@@ -142,6 +163,7 @@ int main(int argc, char **argv)
   mw_replicated_init((long *)&elts_per_nlet, (long)epn);
   mw_replicated_init((long *)&numthreads, (long)nthreads);
   mw_replicated_init((long *)&curr_index, 0);
+  mw_replicated_init((long *)&numNodes, (long)nnodes);
 
   // second pass: read data into distributed array, start with block mapping
   long **InArray = (long **)mw_malloc2d(nnodes, epn * sizeof(long));
@@ -154,8 +176,13 @@ int main(int argc, char **argv)
 		(numread < buf_size)) numread++;
 
     for (unsigned long i = 0; i < numread; i++) {
-      unsigned long nlet = GET_NODE(elt_index, epn);
-      unsigned long off = GET_OFFSET(elt_index, epn);
+      #ifndef CYCLIC
+        unsigned long nlet = GET_NODE(elt_index, epn);
+        unsigned long off = GET_OFFSET(elt_index, epn);
+      #else
+        unsigned long nlet = GET_NODE(elt_index, nnodes);
+        unsigned long off = GET_OFFSET(elt_index, nnodes);
+      #endif
       InArray[nlet][off] = temp[i];
       elt_index++;
     }
@@ -165,8 +192,13 @@ int main(int argc, char **argv)
 
   // fill to nearest power of 2
   for (unsigned long i = elt_index; i < power; i++) {
-    unsigned long nlet = GET_NODE(i, epn);
-    unsigned long off = GET_OFFSET(i, epn);
+    #ifndef CYCLIC
+      unsigned long nlet = GET_NODE(i, epn);
+      unsigned long off = GET_OFFSET(i, epn);
+    #else
+      unsigned long nlet = GET_NODE(i, nnodes);
+      unsigned long off = GET_OFFSET(i, nnodes);
+    #endif
     InArray[nlet][off] = LONG_MAX;
   }
 
@@ -198,6 +230,7 @@ int main(int argc, char **argv)
   unsigned long starttime = CLOCK();
 #endif
 //#endif
+
   long **In = InArray;
   long **Out = OutArray;
   for (unsigned long stage = 1; stage <= lg2power; stage++) {
@@ -228,10 +261,17 @@ int main(int argc, char **argv)
 
 #ifdef DEBUG
   for (unsigned long i = 0; i < power - 1; i++) {
-    unsigned long nlet = GET_NODE(i, epn);
-    unsigned long off = GET_OFFSET(i, epn);
-    unsigned long nletp1 = GET_NODE(i + 1, epn);
-    unsigned long offp1 = GET_OFFSET(i + 1, epn);
+    #ifndef CYCLIC
+        unsigned long nlet = GET_NODE(i, epn);
+        unsigned long off = GET_OFFSET(i, epn);
+        unsigned long nletp1 = GET_NODE(i + 1, epn);
+        unsigned long offp1 = GET_OFFSET(i + 1, epn);
+    #else
+        unsigned long nlet = GET_NODE(i, nnodes);
+        unsigned long off = GET_OFFSET(i, nnodes);
+        unsigned long nletp1 = GET_NODE(i + 1, nnodes);
+        unsigned long offp1 = GET_OFFSET(i + 1, nnodes);
+    #endif
     if (In[nlet][off] > In[nletp1][offp1]) {
       printf("FAILED\n"); fflush(stdout);
       break;
@@ -248,8 +288,13 @@ void print_array(long **arr, unsigned long n)
 {
   printf("[%ld", arr[0][0]); fflush(stdout);
   for (unsigned long i = 1; i < n; i++) {
-    unsigned long nlet = GET_NODE(i, elts_per_nlet);
-    unsigned long off = GET_OFFSET(i, elts_per_nlet);
+    #ifndef CYCLIC
+        unsigned long nlet = GET_NODE(i, elts_per_nlet);
+        unsigned long off = GET_OFFSET(i, elts_per_nlet);
+    #else
+        unsigned long nlet = GET_NODE(i, numNodes);
+        unsigned long off = GET_OFFSET(i, numNodes);
+    #endif
     printf(",%ld", arr[nlet][off]); fflush(stdout);
   }
   printf("]\n"); fflush(stdout);
