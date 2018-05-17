@@ -229,7 +229,7 @@ if __name__ == "__main__":
     fOut = open(outFile, "w")
 
     # Write out header. 
-    fOut.write("PLATFORM,SORT TYPE,NUM ELEMENTS,NUM NODES,NUM THREADS,TOTAL CYCLES,TOTAL THREADS CREATED,TOTAL THREAD MIGRATIONS,SIM WALL CLOCK TIME (s)\n")
+    fOut.write("PLATFORM,SORT TYPE,NUM ELEMENTS,NUM NODES,NUM THREADS PER NODE,TOTAL CYCLES,TOTAL THREADS CREATED,TOTAL THREAD MIGRATIONS,SIM WALL CLOCK TIME (s)\n")
     
     # Depending on the sort type, we have different parsing to do
     if(sortType == "DYNAMIC"):
