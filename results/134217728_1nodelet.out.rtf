@@ -1,0 +1,72 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf600
+{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;\f1\fnil\fcharset0 Menlo-Bold;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red255\green255\blue255;\red159\green160\blue28;
+\red180\green36\blue25;\red46\green174\blue187;}
+{\*\expandedcolortbl;;\csgray\c0;\csgray\c100000;\cssrgb\c68468\c68012\c14208;
+\cssrgb\c76409\c21698\c12524;\cssrgb\c20196\c73240\c78250;}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f0\fs22 \cf2 \cb3 \CocoaLigature0 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\b \cf4 \cb3 ######################################################################################
+\f0\b0 \cf2 \cb3 \
+\cf5 \cb3 + START TIME: Sun Jul 29 06:39:02 UTC 2018\cf2 \cb3 \
+\
+\cf6 \cb3 + Creating output directory: /home/kvelus/output_data_NETWORK_2018-07-29.06:39:01\cf2 \cb3 \
+\
+
+\f1\b \cf4 \cb3 ######################################################################################
+\f0\b0 \cf2 \cb3 \
+\cf6 \cb3 + Running tests for bitonic_network.mwx (EMU HW)\cf2 \cb3 \
+\cf5 \cb3  + START TIME: Sun Jul 29 06:39:02 UTC 2018\cf2 \cb3 \
+[2018-07-29.06:39:02] Running on dataset: dataset27//dataset134217728.dat with 1 nodes and 1 threads\
+[2018-08-04.06:09:32] Running on dataset: dataset27//dataset134217728.dat with 1 nodes and 2 threads\
+[2018-08-07.06:50:14] Running on dataset: dataset27//dataset134217728.dat with 1 nodes and 4 threads\
+[2018-08-08.20:03:18] Running on dataset: dataset27//dataset134217728.dat with 1 nodes and 8 threads\
+n4:~$ \
+\
+\
+n4:~/output_data_NETWORK_2018-07-29.06:39:01/1nodes/1threads/134217728_elements$ cat 134217728elements_1nodes_1threads.out \
+INITIAL HARDCODED TSR:\
+	TSR[0] (NMB) -- offset -- 0x14059750 value -- 0xabcd_0000_0000_1e04\
+	TSR[1] (A  ) -- offset -- 0x14059758 value -- 0x0000_0000_0000_0000\
+	TSR[2] (TCB) -- offset -- 0x14059760 value -- 0x0c8f_0000_0001_01ff\
+	TSR[3] (TPC) -- offset -- 0x14059768 value -- 0x0000_0000_8000_4b10\
+	TSR[4] (TID) -- offset -- 0x14059770 value -- 0x0000_0000_0000_0000\
+Nlets 1 Nthreads 1 Clock 150.0 Total 76796558686546 Time(ms) 511977057.9\
+TOTAL CYCLES: 76796558686546\
+real	143h 30m 30s\
+user	27m 23.56s\
+sys	14m 45.39s\
+\
+\
+n4:~/output_data_NETWORK_2018-07-29.06:39:01/1nodes/2threads$ cat 134217728_elements/134217728elements_1nodes_2threads.out \
+INITIAL HARDCODED TSR:\
+	TSR[0] (NMB) -- offset -- 0x14059750 value -- 0xabcd_0000_0000_1e04\
+	TSR[1] (A  ) -- offset -- 0x14059758 value -- 0x0000_0000_0000_0000\
+	TSR[2] (TCB) -- offset -- 0x14059760 value -- 0x0c8f_0000_0001_01ff\
+	TSR[3] (TPC) -- offset -- 0x14059768 value -- 0x0000_0000_8000_4b10\
+	TSR[4] (TID) -- offset -- 0x14059770 value -- 0x0000_0000_0000_0000\
+Nlets 1 Nthreads 2 Clock 150.0 Total 38549742172393 Time(ms) 256998281.1\
+TOTAL CYCLES: 38549742172393\
+real	72h 40m 42s\
+user	26m 45.40s\
+sys	14m 26.07s\
+\
+n4:~/output_data_NETWORK_2018-07-29.06:39:01/1nodes/4threads$ cat 134217728_elements/134217728elements_1nodes_4threads.out \
+INITIAL HARDCODED TSR:\
+	TSR[0] (NMB) -- offset -- 0x14059750 value -- 0xabcd_0000_0000_1e04\
+	TSR[1] (A  ) -- offset -- 0x14059758 value -- 0x0000_0000_0000_0000\
+	TSR[2] (TCB) -- offset -- 0x14059760 value -- 0x0c8f_0000_0001_01ff\
+	TSR[3] (TPC) -- offset -- 0x14059768 value -- 0x0000_0000_8000_4b10\
+	TSR[4] (TID) -- offset -- 0x14059770 value -- 0x0000_0000_0000_0000\
+Nlets 1 Nthreads 4 Clock 150.0 Total 19398813875750 Time(ms) 129325425.8\
+TOTAL CYCLES: 19398813875750\
+real	37h 13m 03s\
+user	26m 24.74s\
+sys	14m 13.56s\
+\
+\
+}
