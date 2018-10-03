@@ -89,7 +89,7 @@ int main(int argc, char **argv)
   unsigned long nnodes1 = NODELETS();
   unsigned long nthreads = 16;
   unsigned long printflag = 0;
-  double clockrate = 150.0;
+  double clockrate = 175.0;
 
   int c;
   while ((c = getopt(argc, argv, "hbfs:n:t:c:p:")) != -1)
