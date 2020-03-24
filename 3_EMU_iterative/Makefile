@@ -41,10 +41,10 @@ ifeq ($(HARDWARE), 1)
   CFLAGS += -DHARDWARE
 endif
 
-all: bitonic_EMU_iterative
+all: bitonic_EMU_iterative_old
 
-bitonic_EMU_iterative: bitonic_EMU_iterative.c
-	${CC} ${CFLAGS} bitonic_EMU_iterative.c -o bitonic_EMU_iterative.mwx
+bitonic_EMU_iterative_old: bitonic_EMU_iterative_old.c
+	${CC} ${CFLAGS} bitonic_EMU_iterative_old.c -o bitonic_EMU_iterative_old.mwx
 
 clean:
-	rm -rf *.o *.mwx *.part.tqd bitonic_EMU_iterative.mwx *.cdc *.vsf
+	rm -rf *.o *.mwx *.part.tqd bitonic_EMU_iterative_old.mwx *.cdc *.vsf

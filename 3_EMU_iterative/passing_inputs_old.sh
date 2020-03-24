@@ -1,7 +1,5 @@
-"""Author Kaushik Velusamy
-An EMU-UMBC coordination
+"""
 This script passes the input dataset* files to the mwx file and stores the cdc and vsf output files in a seperate folder
-
 Enter x in { } in the next line where x is the input in terms of 2 power x
 """
 #! /bin/bash

@@ -1,20 +1,57 @@
 
 # Bitonic-EMU-Benchmark
-Implementation of the parallel bitonic sort on the EMU machine
+Implementation of the parallel bitonic sorting algorithm on the EMU architecture
+
+# Overview
+
+Large scale, data-intensive applications pose challenges to systems with a traditional memory hierarchy due to their unstructured data sources and irregular memory access patterns. In response, systems that employ migratory threads have been proposed to mitigate memory access bottlenecks as well as reduce energy consumption. One such system is the Emu Chick, which migrates a small program context to the data being referenced in a memory access. Sorting an unordered list of elements is a critical kernel for countless applications, such as graph processing and tensor decomposition. As such applications can be considered highly suitable for a migratory thread architecture , it is imperative to understand the performance of sorting algorithms on these systems.
+
+We implemented different parallel bitonic sorting algorithms and targeted the EMU system. We investigate the performance of these algorithms on,
+* EMU simulator Vs EMU hardware, 
+* Cyclic Vs Blocked data layouts, 
+* Single node Vs Multinode hardware configurations.
 
 
-# Updates on the Current Work
-* bitonic_CPU_iterative.c and bitonic_dynamic.c .  
+# Publication:
 
-	Implemented a CPU-based version of bitonic sort that is parallelized via Cilk. This will give a reference, that we can possibly compare the EMU code [**bitonic_dynamic.c]** to CPU based cilk version **[bitonic_CPU_iterative.c]** of the bitonic sort. As they both use Cilk, the underlying structure of the algorithm and execution will be identical (i.e., they will both create the same number of threads, etc.).
+Kaushik Velusamy, Thomas B. Rolinger, Janice Mcmahon and Tyler A. Simon, "Exploring Parallel Bitonic Sort on a Migratory Thread Architecture," 2018 IEEE High Performance Extreme Computing Conference (HPEC ‘18)At: Waltham, MA. DOI: 10.1109/HPEC.2018.8547568
+
+https://www.researchgate.net/publication/328102159_Exploring_Parallel_Bitonic_Sort_on_a_Migratory_Thread_Architecture
+
+
+
+
+
+
+# Source Files
+
+1_CPU_iterative
+2_CPU_recursive
+3_EMU_iterative
+4_EMU_recursive
+5_EMU_dynamic
+6_EMU_network_seq
+7_EMU_network
+8_EMU_smart
+
+
+* [**bitonic_EMU_iterative.c]** Follows Comparison based approach. This is an iterative implementation of the parallel bitonic sort for EMU.This is called "dynamic" because it spawns threads as it needs them.  The implementation has sparate cylic and blocked data layouts.
+
+
+
+*   [**bitonic_EMU_network.c]** The network version follows the Sorting network based approach and use a fixed number of nodelets and threads. The implementation has sparate cylic and blocked data layouts.
+
+* Implemented a CPU-based version of bitonic sort that is parallelized via Cilk. This will give a reference, that we can possibly compare the EMU code [**bitonic_EMU_dynamic.c]** to CPU based cilk version **[bitonic_CPU_iterative.c]** of the bitonic sort. As they both use Cilk, the underlying structure of the algorithm and execution will be identical (i.e., they will both create the same number of threads, etc.).
 * Profililing the  CPU based cilk version **[bitonic_CPU_iterative.c]** of the bitonic sort using PAPI. We gathered the cycle counts as well as cache misses. We do a more or less one-to-one comparison of the cycle counts between the CPU and EMU code. The cache misses can be loosely compared to the thread migrations.
-* Make sure the EMU code **[bitonic_dynamic.c]** is fairly optimized. We are currently not looking to micro-tune every line of code but we want to make sure that things are done in a reasonable way and we aren't doing anything that could kill performance and be easily fixed. Here, we are doing a simply round-robin approach [mw_malloc1dlong].
-* Explored the different data layouts for the input array that is to be sorted in the **bitonic_network.c** . Here we are experimenting with different blocking strategies, where we put chunks of adjacent elements on each nodelet. Here we analysed the Blocked Data Layout Strategy and the Cyclic Data Layout Strategy from "Optimizing Parallel Bitonic Sort by Mihai Florin Ionescu and Klaus E. Schauser".
+* Make sure the EMU code **[bitonic_EMU_dynamic.c]** is fairly optimized. We are currently not looking to micro-tune every line of code but we want to make sure that things are done in a reasonable way and we aren't doing anything that could kill performance and be easily fixed. Here, we are doing a simply round-robin approach [mw_malloc1dlong].
+* Explored the different data layouts for the input array that is to be sorted in the **bitonic_EMU_network.c** . Here we are experimenting with different blocking strategies, where we put chunks of adjacent elements on each nodelet. Here we analysed the Blocked Data Layout Strategy and the Cyclic Data Layout Strategy from "Optimizing Parallel Bitonic Sort by Mihai Florin Ionescu and Klaus E. Schauser".
 * For now, we are focusing on single-node execution. We will be analyzing the stability of the multi-node execution later.
 In any case, there shouldn't be a difference between the code that runs on 1 node or 8 nodes. We are leaving out the Smart Data Layout Strategy for the future work.
 
 
 # To generate the random numbers for input
+
+check generate_dataset_scripts directory
 
 ```
 python generate_random_numbers.py 1 10 ../../dataset
@@ -93,6 +130,8 @@ For the sorting network version
 
 
 # To Run the parsing scripts to generate the CSV file from the output Folder
+
+check generate_dataset_scripts directory
 
 For Simulator : dynamic threads version
 ```    
