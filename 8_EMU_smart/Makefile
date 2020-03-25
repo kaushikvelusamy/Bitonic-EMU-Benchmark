@@ -1,7 +1,7 @@
 # Tools
 BIN_DIR = /usr/local/emu-20.01-hotfix/bin
 
-EXE ?= BitonicSort
+EXE ?= Bitonic_EMU_smart
 EMULDFLAGS = -lemu_c_utils
 
 ifdef S
@@ -26,7 +26,7 @@ endif
 
 PROFDIR = $(S)N$(N)P$(P)R$(R)C$(C)
 
-BitonicSort.st: INPUTS += -p 4
+Bitonic_EMU_smart.st: INPUTS += -p 4
 profile: INPUTS += -p 2
 profile: SIMFLAGS += --model_hw
 
@@ -53,4 +53,4 @@ bin/$(EXE)%.mwx: $(EXE).c
 	$(MAKE) $(EXE).mwx
 	mv -f $(EXE).mwx $@
 
-include ../emucc.mk
+include emucc.mk
