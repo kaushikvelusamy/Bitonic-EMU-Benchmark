@@ -365,7 +365,7 @@ int main(int argc, char **argv)
   }
 
   long startnlet, endnlet;
-  unsigned long starttime, endtime;
+  volatile unsigned long starttime, endtime;
   if (profile == 2) hooks_region_begin("bitonicsort");
   else if (profile == 1) starttiming();
   else if (profile == 0) {
@@ -391,8 +391,8 @@ int main(int argc, char **argv)
     for (long i = 0; i < N - 1; i++) {
       long ind1 = block_to_cyclic(i, lgE, lgP);
       long ind2 = block_to_cyclic(i + 1, lgE, lgP);
-      printf("%ld ", res[ind1]);
-      if (i == N - 2) printf("%ld\n", res[ind2]);
+      //printf("%ld ", res[ind1]);
+      if (i == N - 2) //printf("%ld\n", res[ind2]);
       if (res[ind1] > res[ind2]) pass = 0;
     }
     fflush(stdout);
