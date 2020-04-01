@@ -33,8 +33,16 @@ replicated long g_lgC;
 replicated long *g_arr1;
 replicated long *g_arr2;
 replicated long g_forw;
+replicated long g_shift;
+replicated long g_dist;
+replicated long g_cycdist;
 replicated long g_map_step;
 replicated long g_map_stage;
+replicated long g_new_c;
+replicated long g_new_a;
+replicated long g_new_t;
+replicated long g_old_a;
+replicated long g_old_t;
 
 unsigned long cyclic_to_block(unsigned long in, long lgE, long lgP)
 {
@@ -51,38 +59,74 @@ unsigned long block_to_cyclic(unsigned long in, long lgE, long lgP)
 }
 
 // comparator: do the nodes for stage/step
-void nletcomp(long ic, long end, long shift, long dist, long jstart, long jend)
+void innerloop(long icnew, long innerend, long *inptr, long *outptr, long r)
 {
-  long forw = g_forw;
-  long *arr1 = g_arr1;
-  long *arr2 = g_arr2;
-  long lgE = g_lgE;
-  long lgP = g_lgP;
-  long start = block_to_cyclic(ic, lgE, lgP); // ic is a relative address
-  long newdist = block_to_cyclic(dist, lgE, lgP); // cyclic mapping
-  for (long ro = start; ic < end; ro += 2 * dist * NODELETS(), ic += 2 * dist) {
-    for (long j = jstart, r = ro; j < jend; j++, r += NODELETS()) {
-      long icnew = ic + j;
+  long shift = g_shift; long dist = g_dist; long newdist = g_cycdist;
+  long r1 = r + newdist;
+  while (icnew < innerend) {
+    long r_val = inptr[r]; long r1_val = inptr[r1];
+    unsigned long rdiv2sm2 = (icnew >> shift) & 1;
+    unsigned long r1div2sm2 = ((icnew + dist) >> shift) & 1;
+    long max_val = r_val; long min_val = r1_val;
+    if (r_val < r1_val) { min_val = r_val; max_val = r1_val; }
+    if (! rdiv2sm2) outptr[r] = min_val;
+    else outptr[r] = max_val;
+    if (r1div2sm2) outptr[r1] = min_val;
+    else outptr[r1] = max_val;
+    icnew++; r += NODELETS(); r1 += NODELETS();
+  }
+}
+
+// forward: input is 1, output is 2
+void nletinner1(long icnew, long icend, long r)
+{
+  long *inptr = g_arr1; long *outptr = g_arr2;
+  innerloop(icnew, icend, inptr, outptr, r);
+}
+
+// backward: input is 2, output is 1
+void nletinner0(long icnew, long icend, long r)
+{
+  long *inptr = g_arr2; long *outptr = g_arr1;
+  innerloop(icnew, icend, inptr, outptr, r);
+}
+
+// comparator: do the nodes for stage/step
+void outerloop(long icnew, long icend, long *inptr, long *outptr)
+{
+  long shift = g_shift; long dist = g_dist; long newdist = g_cycdist;
+  long r = block_to_cyclic(icnew, g_lgE, g_lgP); // ic is a relative address
+  long r1 = r + newdist;
+  while (icnew < icend) {
+    long innerend = icnew + dist;
+    while (icnew < innerend) {
+      long r_val = inptr[r]; long r1_val = inptr[r1];
       unsigned long rdiv2sm2 = (icnew >> shift) & 1;
       unsigned long r1div2sm2 = ((icnew + dist) >> shift) & 1;
-      long r1 = r + newdist;
-      if (forw) {
-	long min_val = MIN(arr1[r], arr1[r1]);
-	long max_val = MAX(arr1[r], arr1[r1]);
-	if (! rdiv2sm2) arr2[r] = min_val;
-	else arr2[r] = max_val;
-	if (r1div2sm2) arr2[r1] = min_val;
-	else arr2[r1] = max_val;
-      } else {
-	long min_val = MIN(arr2[r], arr2[r1]);
-	long max_val = MAX(arr2[r], arr2[r1]);
-	if (! rdiv2sm2) arr1[r] = min_val;
-	else arr1[r] = max_val;
-	if (r1div2sm2) arr1[r1] = min_val;
-	else arr1[r1] = max_val;
-      }
+      long max_val = r_val; long min_val = r1_val;
+      if (r_val < r1_val) { min_val = r_val; max_val = r1_val; }
+      if (! rdiv2sm2) outptr[r] = min_val;
+      else outptr[r] = max_val;
+      if (r1div2sm2) outptr[r1] = min_val;
+      else outptr[r1] = max_val;
+      icnew++; r += NODELETS(); r1 += NODELETS();
     }
+    icnew += dist; r += newdist; r1 += newdist;
   }
+}
+
+// forward: input is 1, output is 2
+void nletcomp1(long icnew, long icend)
+{
+  long *inptr = g_arr1; long *outptr = g_arr2;
+  outerloop(icnew, icend, inptr, outptr);
+}
+
+// backward: input is 2, output is 1
+void nletcomp0(long icnew, long icend)
+{
+  long *inptr = g_arr2; long *outptr = g_arr1;
+  outerloop(icnew, icend, inptr, outptr);
 }
 
 // comparator: do the nodes for stage/step
@@ -105,18 +149,54 @@ void comp(long nctr, unsigned long s, long c)
     if ((shift >= map_c) && (shift < t))  shift += b; // in C
     else if ((shift >= t) && (shift < s)) shift -= tminusa; // in B
   }
-  long totalthreads = 1 << g_lgC;
-  long numoutthreads = MAX(MIN((1 << lgE) / (2 * dist), totalthreads), 1);
-  long outerinc = (1 << lgE) / numoutthreads;
-  long numinthreads = MAX(MIN(dist, totalthreads / numoutthreads), 1);
-  long innerinc = dist / numinthreads;
-  long start = nctr << lgE, node_end = (nctr + 1) << lgE;
+
+  long start = nctr << lgE;
   if (start % (2 * dist) < dist) { // need this for non-smart sort
-    for (long r = start; r < node_end; r += outerinc)
-      for (long j = 0; j < dist; j += innerinc)
-	cilk_spawn nletcomp(r, r + outerinc, shift, dist, 0, dist);
+    g_shift = shift;
+    g_dist = dist;
+    g_cycdist = block_to_cyclic(dist, lgE, g_lgP); // cyclic mapping
+    long node_end = (nctr + 1) << lgE;
+
+    long totalthreads = 1 << g_lgC;
+    long numblocks = (1 << lgE) / (2 * dist);
+#ifdef WITHINNER
+    if (numblocks >= totalthreads) { // parallel over blocks (outer only)
+#else
+    if (1) { // parallel over blocks (outer only)
+#endif
+      long numoutthreads = MAX(MIN(numblocks, totalthreads), 1);
+      long outerinc = (1 << lgE) / numoutthreads;
+      if (g_forw) {
+	for (long r = start; r < node_end; r += outerinc)
+	  cilk_spawn nletcomp1(r, r + outerinc);
+      } else {
+	for (long r = start; r < node_end; r += outerinc)
+	  cilk_spawn nletcomp0(r, r + outerinc);
+      }
+    } else { // one block per outer thread; each block parallelized, slower
+      long numinthreads = MAX(MIN(dist, totalthreads / numblocks), 1);
+      long innerinc = dist / numinthreads;
+      long cinc = block_to_cyclic(innerinc, lgE, g_lgP);
+      if (g_forw) {
+	for (long r = start; r < node_end; r += 2 * dist) {
+	  long ro = block_to_cyclic(r, g_lgE, g_lgP); // ic is relative addr
+	  for (long j = 0; j < dist; j += innerinc) {
+	    cilk_spawn nletinner1(r + j, r + j + innerinc, ro);
+	    ro += cinc;
+	  }
+	}
+      } else {
+	for (long r = start; r < node_end; r += 2 * dist) {
+	  long ro = block_to_cyclic(r, g_lgE, g_lgP); // ic is relative addr
+	  for (long j = 0; j < dist; j += innerinc) {
+	    cilk_spawn nletinner0(r + j, r + j + innerinc, ro);
+	    ro += cinc;
+	  }
+	}
+      }
+    }
+    cilk_sync;
   }
-  cilk_sync;
   g_forw ^= 1; // toggle forw in nodelet
 }
 
@@ -179,48 +259,177 @@ unsigned long abs_to_rel(unsigned long abs, unsigned long a, unsigned long t,
   return Aval | Bval | Cval | Dval;
 }
 
-// remap: move data to new mapping from old mapping
-void nletmove(long s, long e, long new_s, long new_c)
+// remap: move data to new mapping from old mapping (old_c <= 0, new_c > 0)
+void nletmove1_oldblock(long s, long e)
 {
-  long forw = g_forw;
-  long old_c = g_map_step;
-  unsigned long old_s = g_map_stage;
   long *arr1 = g_arr1;
   long *arr2 = g_arr2;
   long lgE = g_lgE;
   long lgP = g_lgP;
-
-  unsigned long old_a, old_t, new_a, new_t;
-  if (old_c >= lgE) { old_a = 0; old_t = old_c - lgE; }
-  else { old_a = old_c; old_t = old_c + old_s - lgE + 1; }
-  if (new_c >= lgE) { new_a = 0; new_t = new_c - lgE; }
-  else { new_a = new_c; new_t = new_c + new_s - lgE + 1; }
-
+  long new_a = g_new_a;
+  long new_t = g_new_t;
   long ic = cyclic_to_block(s, lgE, lgP);
   for (long i = s; i < e; i += NODELETS(), ic++) { // search all indices
-    unsigned long i_new = ic;
-    if (old_c > 0) i_new = rel_to_abs(ic, old_a, old_t, lgE);
-    if (new_c > 0) i_new = abs_to_rel(i_new, new_a, new_t, lgE);
+    unsigned long i_new = abs_to_rel(ic, new_a, new_t, lgE);
     i_new = block_to_cyclic(i_new, lgE, lgP);
-    if (forw) arr2[i_new] = arr1[i]; // should be remote write ...
-    else arr1[i_new] = arr2[i]; // ... no migration
+    arr2[i_new] = arr1[i]; // should be remote write ...
+  }
+}
+
+// remap: move data to new mapping from old mapping (new_c <= 0, old_c > 0)
+void nletmove1_newblock(long s, long e)
+{
+  long *arr1 = g_arr1;
+  long *arr2 = g_arr2;
+  long lgE = g_lgE;
+  long lgP = g_lgP;
+  long old_a = g_old_a;
+  long old_t = g_old_t;
+  long ic = cyclic_to_block(s, lgE, lgP);
+  for (long i = s; i < e; i += NODELETS(), ic++) { // search all indices
+    unsigned long i_new = rel_to_abs(ic, old_a, old_t, lgE);
+    i_new = block_to_cyclic(i_new, lgE, lgP);
+    arr2[i_new] = arr1[i]; // should be remote write ...
+  }
+}
+
+// remap: move data to new mapping from old mapping (new_c > 0, old_c > 0)
+void nletmove1(long s, long e)
+{
+  long *arr1 = g_arr1;
+  long *arr2 = g_arr2;
+  long lgE = g_lgE;
+  long lgP = g_lgP;
+  long old_a = g_old_a;
+  long old_t = g_old_t;
+  long new_a = g_new_a;
+  long new_t = g_new_t;
+  long ic = cyclic_to_block(s, lgE, lgP);
+  for (long i = s; i < e; i += NODELETS(), ic++) { // search all indices
+    unsigned long i_new = rel_to_abs(ic, old_a, old_t, lgE);
+    i_new = abs_to_rel(i_new, new_a, new_t, lgE);
+    i_new = block_to_cyclic(i_new, lgE, lgP);
+    arr2[i_new] = arr1[i]; // ... no migration
+  }
+}
+
+// remap: move data to new mapping from old mapping (old_c <= 0, new_c > 0)
+void nletmove0_oldblock(long s, long e)
+{
+  long *arr1 = g_arr1;
+  long *arr2 = g_arr2;
+  long lgE = g_lgE;
+  long lgP = g_lgP;
+  long new_a = g_new_a;
+  long new_t = g_new_t;
+  long ic = cyclic_to_block(s, lgE, lgP);
+  for (long i = s; i < e; i += NODELETS(), ic++) { // search all indices
+    unsigned long i_new = abs_to_rel(ic, new_a, new_t, lgE);
+    i_new = block_to_cyclic(i_new, lgE, lgP);
+    arr1[i_new] = arr2[i]; // should be remote write ...
+  }
+}
+
+// remap: move data to new mapping from old mapping (new_c <= 0, old_c > 0)
+void nletmove0_newblock(long s, long e)
+{
+  long *arr1 = g_arr1;
+  long *arr2 = g_arr2;
+  long lgE = g_lgE;
+  long lgP = g_lgP;
+  long old_a = g_old_a;
+  long old_t = g_old_t;
+  long ic = cyclic_to_block(s, lgE, lgP);
+  for (long i = s; i < e; i += NODELETS(), ic++) { // search all indices
+    unsigned long i_new = rel_to_abs(ic, old_a, old_t, lgE);
+    i_new = block_to_cyclic(i_new, lgE, lgP);
+    arr1[i_new] = arr2[i]; // should be remote write ...
+  }
+}
+
+// remap: move data to new mapping from old mapping (new_c > 0, old_c > 0)
+void nletmove0(long s, long e)
+{
+  long *arr1 = g_arr1;
+  long *arr2 = g_arr2;
+  long lgE = g_lgE;
+  long lgP = g_lgP;
+  long old_a = g_old_a;
+  long old_t = g_old_t;
+  long new_a = g_new_a;
+  long new_t = g_new_t;
+  long ic = cyclic_to_block(s, lgE, lgP);
+  for (long i = s; i < e; i += NODELETS(), ic++) { // search all indices
+    unsigned long i_new = rel_to_abs(ic, old_a, old_t, lgE);
+    i_new = abs_to_rel(i_new, new_a, new_t, lgE);
+    i_new = block_to_cyclic(i_new, lgE, lgP);
+    arr1[i_new] = arr2[i]; // ... no migration
   }
 }
 
 // spawn threads in each nodelet
-void move(long nctr, long new_stage, long new_step)
+void move(long nctr, long new_s, long new_c)
 {
+  g_new_c = new_c;
+  long old_c = g_map_step;
+  long lgE = g_lgE;
+  unsigned long old_a, old_t, new_a, new_t;
+  if (old_c >= lgE) { old_a = 0; old_t = old_c - lgE; }
+  else { old_a = old_c; old_t = old_c + g_map_stage - lgE + 1; }
+  if (new_c >= lgE) { new_a = 0; new_t = new_c - lgE; }
+  else { new_a = new_c; new_t = new_c + new_s - lgE + 1; }
+
+  g_new_a = new_a;
+  g_new_t = new_t;
+  g_old_a = old_a;
+  g_old_t = old_t;
   long N = g_N;
   long workinc = 1 << (g_lgE - g_lgR + g_lgP); // wpt * NODELETS();
   long start = nctr;
-  while (start < N) {
-    long end = start + workinc;
-    cilk_spawn nletmove(start, end, new_stage, new_step);
-    start = end;
+  if (g_forw) {
+    if ((old_c < 0) && (new_c >= 0)) {
+      while (start < N) {
+	long end = start + workinc;
+	cilk_spawn nletmove1_oldblock(start, end);
+	start = end;
+      }
+    } else if ((old_c >= 0) && (new_c < 0)) {
+      while (start < N) {
+	long end = start + workinc;
+	cilk_spawn nletmove1_newblock(start, end);
+	start = end;
+      }
+    } else if ((old_c > 0) && (new_c > 0)) {
+      while (start < N) {
+	long end = start + workinc;
+	cilk_spawn nletmove1(start, end);
+	start = end;
+      }
+    }
+  } else {
+    if ((old_c < 0) && (new_c >= 0)) {
+      while (start < N) {
+	long end = start + workinc;
+	cilk_spawn nletmove0_oldblock(start, end);
+	start = end;
+      }
+    } else if ((old_c >= 0) && (new_c < 0)) {
+      while (start < N) {
+	long end = start + workinc;
+	cilk_spawn nletmove0_newblock(start, end);
+	start = end;
+      }
+    } else if ((old_c > 0) && (new_c > 0)) {
+      while (start < N) {
+	long end = start + workinc;
+	cilk_spawn nletmove0(start, end);
+	start = end;
+      }
+    }
   }
   cilk_sync;
-  g_map_step = new_step; // update global current step in nodelet
-  g_map_stage = new_stage; // update global current stage in nodelet
+  g_map_step = new_c; // update global current step in nodelet
+  g_map_stage = new_s; // update global current stage in nodelet
   g_forw ^= 1; // toggle forw in nodelet
 }
 
@@ -310,6 +519,16 @@ void globalsort(long lgE, long lgN, long lgP, long smart)
   }
 }
 
+void check(long nctr, long *pass)
+{
+  long *res;
+  if (g_forw) res = g_arr1; else res = g_arr2;
+  long bstart = nctr << g_lgE;
+  long bend = (nctr + 1) << g_lgE;
+  for (long i = bstart, j = nctr; i < bend; i++, j += NODELETS())
+    if (res[j] != i + 1) { *pass = 0; break; }
+}
+
 long log2_val(long n)
 {
   long r = 0;
@@ -323,6 +542,7 @@ int main(int argc, char **argv)
   long profile = 0; // use clock intrinsic for timing
   long lgP = log2_val(NODELETS());
   long lgN = lgP + 1; // two elts per nodelet
+  long lgE = 1; // two elts per nodelet
   long lgR = 0; // 1 thread
   long lgC = 0; // 1 thread
   int c;
@@ -336,14 +556,16 @@ int main(int argc, char **argv)
     }
   }
 
-  if (lgN <= lgP) lgN = lgP + 1; // minimum N >= 2 * P
-  long lgE = lgN - lgP; // log2_val(epn);
-  if (lgE < 0) lgE = 0; // min 1 elt per processor
-  if (lgR > lgE) lgR = lgE; // max epn threads for remap
-  if (lgC > lgE) lgC = lgE - 1; // max threads for comparisons
-  if (lgC < 0) lgC = 0; // min 1 thread
-  if (lgR < 0) lgR = 0; // min 1 thread
-
+  // small arrays: no remapping, one elt and one thread per nodelet
+  if (lgN <= lgP) { smart = 0; lgE = 0; lgC = 0; lgR = 0; }
+  else {
+    lgE = lgN - lgP; // log2_val(epn);
+    if (lgR > lgE) lgR = lgE; // max epn threads for remap
+    if (lgC >= lgE) lgC = lgE - 1; // max threads for comparisons
+    if (lgC < 0) lgC = 0; // min 1 thread
+    if (lgR < 0) lgR = 0; // min 1 thread
+  }
+  
   long N = 1 << lgN;
   mw_replicated_init(&g_N, N);
   mw_replicated_init(&g_lgN, lgN);
@@ -364,38 +586,40 @@ int main(int argc, char **argv)
     arr1[ind] = N - i;
   }
 
-  long startnlet, endnlet;
-  volatile unsigned long starttime, endtime;
-  if (profile == 2) hooks_region_begin("bitonicsort");
-  else if (profile == 1) starttiming();
-  else if (profile == 0) {
-    startnlet = NODE_ID();
-    starttime = CLOCK();
+  long P = 1 << lgP;
+  long R = 1 << lgR;
+  long C = 1 << lgC;
+  if ((profile == 1) || (profile == 2)) { // profile = 1 or 2 does profile
+    hooks_set_attr_i64("Size", N);
+    hooks_set_attr_i64("Scale", lgN);
+    hooks_set_attr_i64("Remap", R);
+    hooks_set_attr_i64("Compute", C);
+    hooks_set_attr_i64("Smart", smart);
+    hooks_set_attr_i64("Nodelets", P);
+    hooks_region_begin("bitonicsort");
   }
-  globalsort(lgE, lgN, lgP, smart);
-  if (profile == 2) {
-    double time_ms = hooks_region_end();
-    printf("Time : %f\n", time_ms); fflush(stdout);
-  } else if (profile == 0) {
-    endtime = CLOCK();
-    endnlet = NODE_ID();
-    printf("N %ld P %ld lgN %ld lgP %ld lgE %ld\n",
-	   N, NODELETS(), lgN, lgP, lgE);
-    double time_ms = (endtime - starttime) / 175000.0;
-    printf("start %lu nlet %lu end %lu nlet %lu : Time (ms) = %lf\n",
-	   starttime, startnlet, endtime, endnlet, time_ms);
+  globalsort(lgE, lgN, lgP, smart); // profile = 1 or 2 does profile
+  if ((profile == 1) || (profile == 2)) hooks_region_end();
 
+  if ((profile == 0) || (profile == 1)) { // profile 0 or 1 does check
     long *res;
     if (g_forw) res = arr1; else res = arr2;
-    long pass = 1;
-    for (long i = 0; i < N - 1; i++) {
-      long ind1 = block_to_cyclic(i, lgE, lgP);
-      long ind2 = block_to_cyclic(i + 1, lgE, lgP);
-      //printf("%ld ", res[ind1]);
-      if (i == N - 2) //printf("%ld\n", res[ind2]);
-      if (res[ind1] > res[ind2]) pass = 0;
+#ifdef DEBUG
+    for (long i = 0; i < N; i++) { // DEBUG does print
+      long ind = block_to_cyclic(i, lgE, lgP);
+      printf("%ld ", res[ind]);
     }
-    fflush(stdout);
+    printf("\n");
+#endif
+    long pass = 1;
+    long lim = MIN(N, NODELETS());
+    for (long i = 0; i < lim; i++) {
+      long *sptr = mw_get_nth(&g_N, i);
+      cilk_spawn_at (sptr) check(i, &pass);
+    }
+    cilk_sync;
+    printf("Size %ld Scale %ld Remap %ld Compute %ld Smart %ld Nodelets %ld ",
+	   N, lgN, R, C, smart, P);
     if (pass) printf("PASS\n"); else printf("FAIL\n");
   }
   return 0;

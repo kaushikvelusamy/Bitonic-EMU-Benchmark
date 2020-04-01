@@ -1,0 +1,47 @@
+BITONIC SORT
+
+Janice McMahon <jmcmahon@emutechnology.com>
+April 1, 2020
+
+The bitonic sort code is very self contained; since the steps of the
+algorithm are data-independent, the algorithm is simply run on an
+array that is generated up front, making a large file read
+unnecessary. There is some debug capability, and also the capability
+to verify the answers, which are not required if running purely for
+timing.
+
+There are five options, all using the getopt function in C:
+
+-s: if this flag is present, the code is run without smart layout;
+ this will be used for performance comparison in future work. default
+ is smart layout
+
+-n <n>: this is how data size is input; the number supplied is the log
+ base 2 of the desired size. default is 2*P where P is the number of nodelets
+
+-R <n>: this is the number of threads per nodelet for the remapping
+ operation. default is 1
+
+-C <n>: this is the number of threads per nodelet for the
+ computational phase default is 1
+
+-p <n>: this determines the level of profiling in the code as follows:
+0 (default): check results only
+1: check results and print timing; on simulator, generates a full
+profile
+2: print timing without checking results; on simulator, generates a
+full profile
+any other value: run without checking or profiling (used for quick
+viewing of cdc and vsf files)
+
+Additionally, there a several compiler flags to control execution:
+-DLINEAR (default): do spawn trees linearly
+-DRECURSIVE (used in benchmark): do spawn trees recursively
+-DRECURSIVE -DLINEAR: do spawn trees linearly but with a recursive
+function
+-DWITHINNER: use inner loop parallelism; by default and in benchmark,
+only outer loop paralelism is used
+-DDEBUG: a few extra printouts to verify smart mapping parameters
+
+The Makefile included with the code contains useful targets and
+shortcuts for using the compiler options and inputs.
