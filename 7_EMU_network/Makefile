@@ -9,7 +9,7 @@ RANLIB = $(BIN_DIR)/gossamer64-ranlib
 
 SIMFLAGS += --use_thread_ids
 
-I ?= $(HOME)/external/Bitonic-EMU-Benchmark/dataset/min-old/paper8
+I ?= dataset16.dat
 INPUTS = $(OPTS) $(I)
 
 ifdef SIM
@@ -24,22 +24,15 @@ ifdef CYCLIC
 CFLAGS += -DCYCLIC
 endif
 
-EXE_NETWORK ?= bitonic_network
-EXE_DYNAMIC ?= bitonic_dynamic
+EXE ?= bitonic_network
 
-all: $(EXE_NETWORK).mwx $(EXE_DYNAMIC).mwx
+all: $(EXE).mwx 
 
 run_seq: bitonic_network_seq
 	./$< $(INPUTS)
 
-bitonic_network_seq: bitonic_network_seq.c
-	gcc -std=c99 -o $@ $<
-
 clean:
 	rm -f *.o *.mwx *.ll *.s *.sxp *.cdc *.vsf *.hdd *.tqd $(EXE)_seq
-
-seq:
-	gcc -std=c99 -DSEQ=1 $(CFLAGS) $(EXE).c
 
 run: $(EXE).mwx
 	$(EMUSIM) $(SIMFLAGS) $< -- $(INPUTS)
