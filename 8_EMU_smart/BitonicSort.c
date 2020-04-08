@@ -504,7 +504,6 @@ void comp(long nctr, unsigned long s, long c)
 
 					startnlet = NODE_ID();
 					starttime = CLOCK();
-
 #ifdef RECURSIVE
 #ifdef LINEAR
 					remap(0, stage, mstep);
@@ -514,13 +513,13 @@ void comp(long nctr, unsigned long s, long c)
 #else
 					remap(stage, mstep);
 #endif
+
 					endtime = CLOCK();
 					endnlet = NODE_ID();
 					if (startnlet == endnlet)
 						remap_ticks += (endtime - starttime);
 					else
-						printf("WARNING: Start and end nodes differ for timings\n");
-
+						printf("WARNING: Start and end nodes differ for timings inside globalsort\n");
 				}
 #ifdef RECURSIVE
 #ifdef LINEAR
@@ -534,8 +533,8 @@ void comp(long nctr, unsigned long s, long c)
 			}
 		}
 
-	printf("Total Remap Ticks = %ld\n",remap_ticks);
-	//time_ms += (endtime - starttime) / 175000.0;
+		printf("Total Remap Ticks = %ld\n",remap_ticks);
+		//time_ms += (endtime - starttime) / 175000.0;
 	}
 
 	void check(long nctr, long *pass)
@@ -615,10 +614,28 @@ void comp(long nctr, unsigned long s, long c)
 			hooks_set_attr_i64("Compute", C);
 			hooks_set_attr_i64("Smart", smart);
 			hooks_set_attr_i64("Nodelets", P);
-			hooks_region_begin("bitonicsort");
+			//hooks_region_begin("bitonicsort");
 		}
-		globalsort(lgE, lgN, lgP, smart); // profile = 1 or 2 does profile
-		if ((profile == 1) || (profile == 2)) hooks_region_end();
+		long startnlet_0, endnlet_0;
+		volatile unsigned long starttime_0, endtime_0;
+		long full_ticks = 0;
+		double time_ms=0;
+		startnlet_0 = NODE_ID();
+		starttime_0 = CLOCK();
+
+		globalsort(lgE, lgN, lgP, smart);
+
+		endtime_0 = CLOCK();
+		endnlet_0 = NODE_ID();
+		if (startnlet_0 == endnlet_0)
+		{
+			full_ticks = endtime_0 - starttime_0;
+			time_ms = full_ticks / 175000.00;
+		}
+		else
+			printf("WARNING: Start and end nodes differ for timings outside globalsort\n");
+
+		printf("\nTotal Time in ms %lf Total ticks %ld \n",time_ms, full_ticks);
 
 		if ((profile == 0) || (profile == 1)) { // profile 0 or 1 does check
 			long *res;
