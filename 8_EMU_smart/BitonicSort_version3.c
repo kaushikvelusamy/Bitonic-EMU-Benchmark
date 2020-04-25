@@ -30,9 +30,8 @@ replicated long g_lgE;
 replicated long g_lgP;
 replicated long g_lgR;
 replicated long g_lgC;
-replicated long *g_arr1;
-replicated long *g_arr2;
-replicated long g_forw;
+replicated long *g_inptr;
+replicated long *g_outptr;
 replicated long g_shift;
 replicated long g_dist;
 replicated long g_cycdist;
@@ -94,22 +93,12 @@ void innerloop_same(long icnew, long innerend, long *inptr, long mask,
   }
 }
 
-// forward: input is 1, output is 2
-void nletinner1(long icnew, long icend)
+// innerloop comparator, depends if bits of r and r1 are same or diff
+void nletinner(long icnew, long icend)
 {
   long r = block_to_cyclic(icnew, g_lgE, g_lgP); // ic is a relative address
   long newdist = g_cycdist; long mask = 1 << g_shift;
-  long *inptr = &g_arr1[r]; long *r1_ptr = inptr + newdist;
-  if (g_dist == mask) innerloop_diff(icnew, icend, inptr, mask, r1_ptr);
-  else innerloop_same(icnew, icend, inptr, mask, r1_ptr);
-}
-
-// backward: input is 2, output is 1
-void nletinner2(long icnew, long icend)
-{
-  long r = block_to_cyclic(icnew, g_lgE, g_lgP); // ic is a relative address
-  long newdist = g_cycdist; long mask = 1 << g_shift;
-  long *inptr = &g_arr2[r]; long *r1_ptr = inptr + newdist;
+  long *inptr = &g_inptr[r]; long *r1_ptr = inptr + newdist;
   if (g_dist == mask) innerloop_diff(icnew, icend, inptr, mask, r1_ptr);
   else innerloop_same(icnew, icend, inptr, mask, r1_ptr);
 }
@@ -158,23 +147,12 @@ void outerloop_same(long icnew, long icend, long *inptr, long mask, long dist,
   }
 }
 
-// forward: input is 1, output is 2
-void nletcomp1(long icnew, long icend)
+// outerloop comparator, depends on whether bits of r and r1 are same or diff
+void nletcomp(long icnew, long icend)
 {
   long r = block_to_cyclic(icnew, g_lgE, g_lgP); // ic is a relative address
   long dist = g_dist; long newdist = g_cycdist; long mask = 1 << g_shift;
-  long *inptr = &g_arr1[r]; long *r1_ptr = inptr + newdist;
-  if (dist == mask) outerloop_diff(icnew, icend, inptr, mask, dist, newdist,
-				   r1_ptr);
-  else outerloop_same(icnew, icend, inptr, mask, dist, newdist, r1_ptr);
-}
-
-// backward: input is 2, output is 1
-void nletcomp2(long icnew, long icend)
-{
-  long r = block_to_cyclic(icnew, g_lgE, g_lgP); // ic is a relative address
-  long dist = g_dist; long newdist = g_cycdist; long mask = 1 << g_shift;
-  long *inptr = &g_arr2[r]; long *r1_ptr = inptr + newdist;
+  long *inptr = &g_inptr[r]; long *r1_ptr = inptr + newdist;
   if (dist == mask) outerloop_diff(icnew, icend, inptr, mask, dist, newdist,
 				   r1_ptr);
   else outerloop_same(icnew, icend, inptr, mask, dist, newdist, r1_ptr);
@@ -206,8 +184,8 @@ void comp(long nctr, unsigned long s, long c)
     g_shift = shift;
     g_dist = dist;
     g_cycdist = block_to_cyclic(dist, lgE, g_lgP); // cyclic mapping
-    long node_end = (nctr + 1) << lgE;
 
+    long node_end = (nctr + 1) << lgE;
     long totalthreads = 1 << g_lgC;
     long numblocks = (1 << lgE) / (2 * dist);
 #ifdef WITHINNER
@@ -217,13 +195,8 @@ void comp(long nctr, unsigned long s, long c)
 #endif
       long numoutthreads = MAX(MIN(numblocks, totalthreads), 1);
       long outerinc = (1 << lgE) / numoutthreads;
-      if (g_forw) {
-	for (long r = start; r < node_end; r += outerinc)
-	  cilk_spawn nletcomp1(r, r + outerinc);
-      } else {
-	for (long r = start; r < node_end; r += outerinc)
-	  cilk_spawn nletcomp2(r, r + outerinc);
-      }
+      for (long r = start; r < node_end; r += outerinc)
+	cilk_spawn nletcomp(r, r + outerinc);
     } else { // one block per outer thread; each block parallelized, slower
       long mypart = 1 << lgE; // if block is spread over nodelets
       long numinthreads = totalthreads; // all threads are inner
@@ -232,22 +205,10 @@ void comp(long nctr, unsigned long s, long c)
       long innerinc = mypart / numinthreads;
       long cinc = block_to_cyclic(innerinc, lgE, g_lgP);
 
-      if (g_forw) {
-	for (long r = start; r < node_end; r += 2 * dist) {
-	  long ro = block_to_cyclic(r, g_lgE, g_lgP); // ic is relative addr
-	  for (long j = 0; j < mypart; j += innerinc) {
-	    cilk_spawn nletinner1(r + j, r + j + innerinc);
-	    ro += cinc;
-	  }
-	}
-      } else {
-	for (long r = start; r < node_end; r += 2 * dist) {
-	  long ro = block_to_cyclic(r, g_lgE, g_lgP); // ic is relative addr
-	  for (long j = 0; j < mypart; j += innerinc) {
-	    cilk_spawn nletinner2(r + j, r + j + innerinc);
-	    ro += cinc;
-	  }
-	}
+      for (long r = start; r < node_end; r += 2 * dist) {
+	long ro = block_to_cyclic(r, g_lgE, g_lgP); // relative address
+	for (long j = 0; j < mypart; j += innerinc, ro += cinc)
+	  cilk_spawn nletinner(r + j, r + j + innerinc);
       }
     }
     cilk_sync;
@@ -259,21 +220,21 @@ void comp(long nctr, unsigned long s, long c)
 #ifdef LINEAR
 void processcolumn(unsigned long low, long s, long c)
 {
-  long *arr1 = g_arr1;
+  long *inptr = g_inptr;
   if (low < NODELETS() - 1) {
-    cilk_spawn_at (&arr1[low + 1]) processcolumn(low + 1, s, c);
+    cilk_spawn_at (&inptr[low + 1]) processcolumn(low + 1, s, c);
   }
   comp(low, s, c);
 }
 #else
 void processcolumn(unsigned long low, unsigned long high, long s, long c)
 {
-  long *arr1 = g_arr1;
+  long *inptr = g_inptr;
   for (;;) {
     unsigned long count = high - low;
     if (count <= 1) break;
     unsigned long mid = low + count / 2;
-    cilk_spawn_at (&arr1[mid]) processcolumn(mid, high, s, c);
+    cilk_spawn_at (&inptr[mid]) processcolumn(mid, high, s, c);
     high = mid;
   }
   comp(low, s, c);
@@ -282,9 +243,9 @@ void processcolumn(unsigned long low, unsigned long high, long s, long c)
 #else
 void processcolumn(long s, long c)
 {
-  long *arr1 = g_arr1;
+  long *inptr = g_inptr;
   for (long nctr = 0; nctr < NODELETS(); nctr++) { // spawn in each nodelet
-    cilk_spawn_at (&arr1[nctr]) comp(nctr, s, c);
+    cilk_spawn_at (&inptr[nctr]) comp(nctr, s, c);
   }
 }
 #endif
@@ -314,110 +275,56 @@ unsigned long abs_to_rel(unsigned long abs, unsigned long a, unsigned long t,
 }
 
 // remap: move data to new mapping from old mapping (old_c <= 0, new_c > 0)
-void nletmove1_oldblock(long s, long e)
+void nletmove_oldblock(long s, long e)
 {
-  long *arr1 = g_arr1;
-  long *arr2 = g_arr2;
+  long *inarr = g_inptr;
+  long *outarr = g_outptr;
   long lgE = g_lgE;
   long lgP = g_lgP;
   long new_a = g_new_a;
   long new_t = g_new_t;
-  long ic = cyclic_to_block(s, lgE, lgP);
-  for (long i = s; i < e; i += NODELETS(), ic++) { // search all indices
-    unsigned long i_new = abs_to_rel(ic, new_a, new_t, lgE);
-    i_new = block_to_cyclic(i_new, lgE, lgP);
-    arr2[i_new] = arr1[i]; // should be remote write ...
+  long i = block_to_cyclic(s, lgE, lgP); // cyclic address to index arrays
+  for (long ic = s; ic < e; ic++, i += NODELETS()) { // loop over portion
+    unsigned long i_new = abs_to_rel(ic, new_a, new_t, lgE); // new address
+    i_new = block_to_cyclic(i_new, lgE, lgP); // cyclic to address arrays
+    outarr[i_new] = inarr[i]; // should be remote write ...
   }
 }
 
 // remap: move data to new mapping from old mapping (new_c <= 0, old_c > 0)
-void nletmove1_newblock(long s, long e)
+void nletmove_newblock(long s, long e)
 {
-  long *arr1 = g_arr1;
-  long *arr2 = g_arr2;
+  long *inarr = g_inptr;
+  long *outarr = g_outptr;
   long lgE = g_lgE;
   long lgP = g_lgP;
   long old_a = g_old_a;
   long old_t = g_old_t;
-  long ic = cyclic_to_block(s, lgE, lgP);
-  for (long i = s; i < e; i += NODELETS(), ic++) { // search all indices
-    unsigned long i_new = rel_to_abs(ic, old_a, old_t, lgE);
-    i_new = block_to_cyclic(i_new, lgE, lgP);
-    arr2[i_new] = arr1[i]; // should be remote write ...
+  long i = block_to_cyclic(s, lgE, lgP); // cyclic address to index arrays
+  for (long ic = s; ic < e; ic++, i += NODELETS()) { // loop over portion
+    unsigned long i_new = rel_to_abs(ic, old_a, old_t, lgE); // new address
+    i_new = block_to_cyclic(i_new, lgE, lgP); // cyclic to address arrays
+    outarr[i_new] = inarr[i]; // should be remote write ...
   }
 }
 
 // remap: move data to new mapping from old mapping (new_c > 0, old_c > 0)
-void nletmove1(long s, long e)
+void nletmove(long s, long e)
 {
-  long *arr1 = g_arr1;
-  long *arr2 = g_arr2;
+  long *inarr = g_inptr;
+  long *outarr = g_outptr;
   long lgE = g_lgE;
   long lgP = g_lgP;
   long old_a = g_old_a;
   long old_t = g_old_t;
   long new_a = g_new_a;
   long new_t = g_new_t;
-  long ic = cyclic_to_block(s, lgE, lgP);
-  for (long i = s; i < e; i += NODELETS(), ic++) { // search all indices
+  long i = block_to_cyclic(s, lgE, lgP); // cyclic address to index arrays
+  for (long ic = s; ic < e; ic++, i += NODELETS()) { // loop over portion
     unsigned long i_new = rel_to_abs(ic, old_a, old_t, lgE);
-    i_new = abs_to_rel(i_new, new_a, new_t, lgE);
-    i_new = block_to_cyclic(i_new, lgE, lgP);
-    arr2[i_new] = arr1[i]; // ... no migration
-  }
-}
-
-// remap: move data to new mapping from old mapping (old_c <= 0, new_c > 0)
-void nletmove0_oldblock(long s, long e)
-{
-  long *arr1 = g_arr1;
-  long *arr2 = g_arr2;
-  long lgE = g_lgE;
-  long lgP = g_lgP;
-  long new_a = g_new_a;
-  long new_t = g_new_t;
-  long ic = cyclic_to_block(s, lgE, lgP);
-  for (long i = s; i < e; i += NODELETS(), ic++) { // search all indices
-    unsigned long i_new = abs_to_rel(ic, new_a, new_t, lgE);
-    i_new = block_to_cyclic(i_new, lgE, lgP);
-    arr1[i_new] = arr2[i]; // should be remote write ...
-  }
-}
-
-// remap: move data to new mapping from old mapping (new_c <= 0, old_c > 0)
-void nletmove0_newblock(long s, long e)
-{
-  long *arr1 = g_arr1;
-  long *arr2 = g_arr2;
-  long lgE = g_lgE;
-  long lgP = g_lgP;
-  long old_a = g_old_a;
-  long old_t = g_old_t;
-  long ic = cyclic_to_block(s, lgE, lgP);
-  for (long i = s; i < e; i += NODELETS(), ic++) { // search all indices
-    unsigned long i_new = rel_to_abs(ic, old_a, old_t, lgE);
-    i_new = block_to_cyclic(i_new, lgE, lgP);
-    arr1[i_new] = arr2[i]; // should be remote write ...
-  }
-}
-
-// remap: move data to new mapping from old mapping (new_c > 0, old_c > 0)
-void nletmove0(long s, long e)
-{
-  long *arr1 = g_arr1;
-  long *arr2 = g_arr2;
-  long lgE = g_lgE;
-  long lgP = g_lgP;
-  long old_a = g_old_a;
-  long old_t = g_old_t;
-  long new_a = g_new_a;
-  long new_t = g_new_t;
-  long ic = cyclic_to_block(s, lgE, lgP);
-  for (long i = s; i < e; i += NODELETS(), ic++) { // search all indices
-    unsigned long i_new = rel_to_abs(ic, old_a, old_t, lgE);
-    i_new = abs_to_rel(i_new, new_a, new_t, lgE);
-    i_new = block_to_cyclic(i_new, lgE, lgP);
-    arr1[i_new] = arr2[i]; // ... no migration
+    i_new = abs_to_rel(i_new, new_a, new_t, lgE); // new address
+    i_new = block_to_cyclic(i_new, lgE, lgP); // cyclic to address arrays
+    outarr[i_new] = inarr[i]; // ... no migration
   }
 }
 
@@ -437,64 +344,33 @@ void move(long nctr, long new_s, long new_c)
   g_new_t = new_t;
   g_old_a = old_a;
   g_old_t = old_t;
-  long N = g_N;
-  long workinc = 1 << (g_lgE - g_lgR + g_lgP); // wpt * NODELETS();
-  long start = nctr;
-  if (g_forw) {
-    if ((old_c < 0) && (new_c >= 0)) {
-      while (start < N) {
-	long end = start + workinc;
-	cilk_spawn nletmove1_oldblock(start, end);
-	start = end;
-      }
-    } else if ((old_c >= 0) && (new_c < 0)) {
-      while (start < N) {
-	long end = start + workinc;
-	cilk_spawn nletmove1_newblock(start, end);
-	start = end;
-      }
-    } else if ((old_c > 0) && (new_c > 0)) {
-      while (start < N) {
-	long end = start + workinc;
-	cilk_spawn nletmove1(start, end);
-	start = end;
-      }
-    }
+  long start = nctr << lgE;
+  long node_end = (nctr + 1) << lgE;
+  long outerinc = 1 << (g_lgE - g_lgR); // lgE always >= lgR
+  if (old_c < 0) {
+    for (long r = start; r < node_end; r += outerinc)
+      cilk_spawn nletmove_oldblock(r, r + outerinc);
+  } else if (new_c < 0) {
+    for (long r = start; r < node_end; r += outerinc)
+      cilk_spawn nletmove_newblock(r, r + outerinc);
   } else {
-    if ((old_c < 0) && (new_c >= 0)) {
-      while (start < N) {
-	long end = start + workinc;
-	cilk_spawn nletmove0_oldblock(start, end);
-	start = end;
-      }
-    } else if ((old_c >= 0) && (new_c < 0)) {
-      while (start < N) {
-	long end = start + workinc;
-	cilk_spawn nletmove0_newblock(start, end);
-	start = end;
-      }
-    } else if ((old_c > 0) && (new_c > 0)) {
-      while (start < N) {
-	long end = start + workinc;
-	cilk_spawn nletmove0(start, end);
-	start = end;
-      }
-    }
+    for (long r = start; r < node_end; r += outerinc)
+      cilk_spawn nletmove(r, r + outerinc);
   }
   cilk_sync;
   g_map_step = new_c; // update global current step in nodelet
   g_map_stage = new_s; // update global current stage in nodelet
-  g_forw ^= 1; // toggle forw in nodelet
+  long *temp = g_inptr; g_inptr = g_outptr; g_outptr = temp; // swap buffers
 }
 
 #ifdef RECURSIVE
 #ifdef LINEAR
 void remap(unsigned long low, long new_stage, long new_step)
 {
-  //  long *arr1 = g_arr1; // doesn't work - why??
+  //  long *inptr = g_inptr; // doesn't work - why??
   if (low < NODELETS() - 1) {
     long *sptr = mw_get_nth(&g_N, low + 1);
-    //    cilk_spawn_at (&arr1[low + 1]) remap(low + 1, new_stage, new_step);
+    //    cilk_spawn_at (&inptr[low + 1]) remap(low + 1, new_stage, new_step);
     cilk_spawn_at (sptr) remap(low + 1, new_stage, new_step);
   }
   move(low, new_stage, new_step);
@@ -502,12 +378,12 @@ void remap(unsigned long low, long new_stage, long new_step)
 #else
 void remap(unsigned long low, unsigned long high, long new_stage, long new_step)
 {
-  long *arr1 = g_arr1;
+  long *inptr = g_inptr;
   for (;;) {
     unsigned long count = high - low;
     if (count <= 1) break;
     unsigned long mid = low + count / 2;
-    cilk_spawn_at (&arr1[mid]) remap(mid, high, new_stage, new_step);
+    cilk_spawn_at (&inptr[mid]) remap(mid, high, new_stage, new_step);
     high = mid;
   }
   move(low, new_stage, new_step);
@@ -517,9 +393,9 @@ void remap(unsigned long low, unsigned long high, long new_stage, long new_step)
 // remap: move data to new mapping from old mapping
 void remap(long new_stage, long new_step)
 {
-  long *arr1 = g_arr1;
+  long *inptr = g_inptr;
   for (long nctr = 0; nctr < NODELETS(); nctr++) { // spawn in each nodelet
-    cilk_spawn_at (&arr1[nctr]) move(nctr, new_stage, new_step);
+    cilk_spawn_at (&inptr[nctr]) move(nctr, new_stage, new_step);
   }
 }
 #endif
@@ -529,6 +405,11 @@ void globalsort(long lgE, long lgN, long lgP, long smart)
 {
   unsigned long next_stage = lgN + 1; // initial remapping stage
   unsigned long next_step = lgN + 1; // initial remapping step
+
+  long startnlet, endnlet;
+  volatile unsigned long starttime, endtime;
+  long remap_ticks = 0; 
+
   if (smart) {
     next_stage = lgE + 1; // initial remapping stage
     next_step = lgE + 1; // initial remapping step
@@ -550,6 +431,9 @@ void globalsort(long lgE, long lgN, long lgP, long smart)
 		 stage, k, step, a, lgE - a, t);
 #endif
 	}
+  startnlet = NODE_ID();
+  starttime = CLOCK();
+
 #ifdef RECURSIVE
 #ifdef LINEAR
 	remap(0, stage, mstep);
@@ -559,6 +443,16 @@ void globalsort(long lgE, long lgN, long lgP, long smart)
 #else
 	remap(stage, mstep);
 #endif
+
+
+  endtime = CLOCK();
+  endnlet = NODE_ID();
+  if (startnlet == endnlet)
+    remap_ticks += (endtime - starttime);
+  else
+    printf("WARNING: Start and end nodes differ for timings inside globalsort\n");
+
+
       }
 #ifdef RECURSIVE
 #ifdef LINEAR
@@ -571,12 +465,12 @@ void globalsort(long lgE, long lgN, long lgP, long smart)
 #endif
     }
   }
+		printf("Total Remap Ticks = %ld\n",remap_ticks);
 }
 
 void check(long nctr, long *pass)
 {
-  long *res;
-  if (g_forw) res = g_arr1; else res = g_arr2;
+  long *res = g_inptr;
   long bstart = nctr << g_lgE;
   long bend = (nctr + 1) << g_lgE;
   for (long i = bstart, j = nctr; i < bend; i++, j += NODELETS())
@@ -628,11 +522,10 @@ int main(int argc, char **argv)
   mw_replicated_init(&g_lgR, lgR);
   mw_replicated_init(&g_lgC, lgC);
   long *arr1 = mw_malloc1dlong(N);
-  mw_replicated_init((long *)&g_arr1, (long)arr1);
+  mw_replicated_init((long *)&g_inptr, (long)arr1); // input starts in arr1
   long *arr2 = mw_malloc1dlong(N);
-  mw_replicated_init((long *)&g_arr2, (long)arr2);
+  mw_replicated_init((long *)&g_outptr, (long)arr2); // output starts in arr2
 
-  mw_replicated_init(&g_forw, 1); // start with input in 1 and output in 2
   mw_replicated_init(&g_map_step, -1); // initial mapping is block
   mw_replicated_init(&g_map_stage, 0); // initial a (unused in block mapping)
   for (long i = 0; i < N; i++) {
@@ -650,15 +543,35 @@ int main(int argc, char **argv)
     hooks_set_attr_i64("Compute", C);
     hooks_set_attr_i64("Smart", smart);
     hooks_set_attr_i64("Nodelets", P);
-    hooks_region_begin("bitonicsort");
+//    hooks_region_begin("bitonicsort");
   }
+long startnlet_0, endnlet_0;
+		volatile unsigned long starttime_0, endtime_0;
+		long full_ticks = 0;
+		double time_ms=0;
+		startnlet_0 = NODE_ID();
+		starttime_0 = CLOCK();
+
   globalsort(lgE, lgN, lgP, smart); // profile = 1 or 2 does profile
-  if ((profile == 1) || (profile == 2)) hooks_region_end();
+
+endtime_0 = CLOCK();
+		endnlet_0 = NODE_ID();
+
+if (startnlet_0 == endnlet_0)
+		{
+			full_ticks = endtime_0 - starttime_0;
+			time_ms = full_ticks / 175000.00;
+		}
+		else
+			printf("WARNING: Start and end nodes differ for timings outside globalsort\n");
+
+		printf("\nTotal Time in ms %lf Total ticks %ld \n",time_ms, full_ticks);
+
+
 
   if ((profile == 0) || (profile == 1)) { // profile 0 or 1 does check
-    long *res;
-    if (g_forw) res = arr1; else res = arr2;
 #ifdef DEBUG
+    long *res = g_inptr;
     for (long i = 0; i < N; i++) { // DEBUG does print
       long ind = block_to_cyclic(i, lgE, lgP);
       printf("%ld ", res[ind]);
