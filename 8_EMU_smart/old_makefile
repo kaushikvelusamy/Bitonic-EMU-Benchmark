@@ -1,8 +1,5 @@
 # Tools
 BIN_DIR ?= /usr/local/emu/bin
-ifdef I
-BIN_DIR = /home2/tdysart/Toolchain-Nightly/bin
-endif
 
 EMU_CC = $(BIN_DIR)/emu-cc
 EMUSIM = $(BIN_DIR)/emusim.x
@@ -16,23 +13,18 @@ EMULDFLAGS = -lemu_c_utils
 
 EXE ?= BitonicSort
 
-ifdef H
-CFLAGS += -DHPEC
-endif
 
 ifdef X
 CFLAGS += -DRECURSIVE
-endif
-
-ifdef Y
-CFLAGS += -DLINEAR
 endif
 
 ifdef D
 CFLAGS += -DDEBUG
 endif
 
-INPUTS = $(IN)
+ifdef S
+INPUTS += -s
+endif
 
 ifdef O
 INPUTS += -p $(O)
@@ -59,14 +51,23 @@ PROFDIR = $(S)N$(N)P$(P)R$(R)C$(C)
 SWEEPLOG = sweeps.log
 JOBFILE = scripts/jobfile
 
-SIMFLAGS += --model_hw
-
 BitonicSort.st: INPUTS += -p 10
 profile: INPUTS += -p $(PROFFLAG)
+profile: SIMFLAGS += --model_hw
+
+OPTIONS = Linear RecLin Recurse Debug
+
+bin/$(EXE)Debug.mwx: CFLAGS += -DDEBUG
+bin/$(EXE)Recurse.mwx: CFLAGS += -DRECURSIVE
+bin/$(EXE)RecLin.mwx: CFLAGS += -DRECURSIVE -DLINEAR
 
 export
 
 build: default
+
+allbin: $(patsubst %, bin/$(EXE)%.mwx, $(OPTIONS))
+
+allprof: $(patsubst %, $(S)N$(N)P$(P)R$(R)C$(C)%, $(OPTIONS))
 
 sweeps: $(JOBFILE)
 	nice nohup parallel -a $(JOBFILE) --joblog $(SWEEPLOG) &
@@ -90,11 +91,11 @@ profile: $(EXE).mwx
 clean:
 	rm -f *.o *.mwx *.ll *.s *.sxp *.cdc *.vsf *.hdd
 
+do%:
+	$(MAKE) $(EXE).$*
+
 %.mwx: %.c
 	$(EMU_CC) $(EMUCFLAGS) -o $@ $^ $(EMULDFLAGS)
-
-%.s: %.c
-	$(EMU_CC) $(EMUCFLAGS) -S $^
 
 %.tqd: %.mwx
 	$(EMUSIM) $(SIMFLAGS) --capture_timing_queues -o $* -- $< $(INPUTS)
